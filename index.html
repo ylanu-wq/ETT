@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>English Today and Tomorrow — учи сегодня, говори завтра</title>
+  <meta name="description" content="Бесплатное веб-приложение для изучения английской лексики методом визуальных ассоциаций: карточки-перевёртыши, режим повторения, импорт словарей, режим для слабовидящих, PWA для телефона.">
+
+  <!-- ============== CSP: защита от XSS и инъекций ============== -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self';
+    style-src 'self' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com;
+    img-src 'self' data: https: blob:;
+    connect-src 'self' https://api.unsplash.com https://images.unsplash.com https://raw.githubusercontent.com https://source.unsplash.com;
+    manifest-src 'self';
+    worker-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+  ">
+
+  <!-- ============== PWA-мета ============== -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="color-scheme" content="light dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ETT">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+
+  <!-- Шрифт Inter с Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ============== ЗАКРЕПЛЁННАЯ ВЕРХНЯЯ ПАНЕЛЬ ============== -->
+  <header class="topbar">
+    <div class="topbar-row">
+      <!-- Кнопка-бургер для левого меню -->
+      <button class="burger" id="burger" aria-label="Меню">☰</button>
+
+      <!-- Логотип -->
+      <div class="brand">
+        <div class="logo" aria-hidden="true">ETT<span class="logo-book">📖</span></div>
+        <div class="brand-text">
+          <div class="brand-name">English Today and Tomorrow</div>
+          <div class="brand-slogan">Учи сегодня — говори завтра</div>
+        </div>
+      </div>
+
+      <!-- Живой поиск -->
+      <div class="search-wrap">
+        <input id="search" type="search" placeholder="🔍 Поиск… (нажмите «/»)" autocomplete="off" maxlength="100">
+      </div>
+
+      <!-- Переключатели тем -->
+      <div class="theme-toggles">
+        <button class="theme-btn" id="btnDarkMode" title="Тёмная тема" aria-label="Тёмная тема">🌙</button>
+        <button class="theme-btn" id="btnA11y" title="Режим для слабовидящих" aria-label="Режим для слабовидящих">👁️</button>
+        <!-- Кнопка установки PWA (показывается только когда доступна) -->
+        <button class="theme-btn hidden" id="btnInstall" title="Установить приложение" aria-label="Установить приложение">📲</button>
+      </div>
+
+      <!-- Кнопки действий -->
+      <div class="actions">
+        <button class="btn btn-ghost" id="btnStudyAll" title="Режим повторения">🎓 Повторение</button>
+        <button class="btn btn-primary" id="btnAddWord" title="Добавить слово">＋ Слово</button>
+        <button class="btn btn-ghost" id="btnImport" title="Импорт реального словаря">📥 Импорт</button>
+        <button class="btn btn-ghost" id="btnAbout" title="О проекте">ℹ️ О проекте</button>
+        <button class="btn btn-ghost" id="btnSettings" title="Настройки оформления">⚙️ Тема</button>
+      </div>
+    </div>
+
+    <!-- ЛИПКАЯ горизонтальная лента вкладок-папок -->
+    <nav class="tabs" id="tabs" aria-label="Папки"></nav>
+  </header>
+
+  <!-- ============== ЛЕВОЕ БОКОВОЕ МЕНЮ ============== -->
+  <aside class="sidebar" id="sidebar" aria-label="Быстрая навигация">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Навигация</div>
+      <button class="side-link" data-scroll="top">⬆️ Наверх</button>
+      <button class="side-link" data-jump-folder="all">📚 Все слова</button>
+      <div id="sideFolders"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Действия</div>
+      <button class="side-link" id="sideAddWord">＋ Добавить слово</button>
+      <button class="side-link" id="sideStudy">🎓 Повторение</button>
+      <button class="side-link" id="sideStudyThemes">🎓 По темам</button>
+      <button class="side-link" id="sideImport">📥 Импорт словаря</button>
+      <button class="side-link" id="sideInstall" hidden>📲 Установить приложение</button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Темы оформления</div>
+      <button class="side-link" id="sideDark">🌙 Тёмная тема</button>
+      <button class="side-link" id="sideA11y">👁️ Для слабовидящих</button>
+      <button class="side-link" id="sideHelp">❓ Обучение</button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Статистика</div>
+      <div class="side-stat"><span>Всего слов:</span> <strong id="statTotal">0</strong></div>
+      <div class="side-stat"><span>Изучено (всё время):</span> <strong id="statLearned">0</strong></div>
+      <div class="side-stat"><span>Лучшая серия:</span> <strong id="statBest">0</strong></div>
+      <button class="side-link" id="sideResetStats" style="margin-top:8px;font-size:12px;color:var(--c-danger)">🗑 Сбросить статистику</button>
+    </div>
+  </aside>
+
+  <!-- Затемнение фона при открытом меню (на мобильных) -->
+  <div class="sidebar-overlay" id="sidebarOverlay" hidden></div>
+
+  <!-- ============== ОСНОВНАЯ ОБЛАСТЬ ============== -->
+  <main class="main" id="main">
+    <!-- Приветственный блок и сетка групп рендерятся динамически -->
+  </main>
+
+  <!-- ============== ФУТЕР ============== -->
+  <footer class="footer">
+    <div class="footer-row">
+      <span>© <span id="year"></span> English Today and Tomorrow</span>
+      <span class="footer-tech">HTML5 · CSS3 · Vanilla JS · PWA · Web Speech API</span>
+    </div>
+  </footer>
+
+  <!-- ============== ОНБОРДИНГ ============== -->
+  <div class="modal-backdrop" id="onboarding" hidden>
+    <div class="modal onboarding-modal" role="dialog" aria-modal="true" aria-labelledby="onbTitle">
+      <div class="onb-progress">
+        <span class="onb-dot is-active"></span>
+        <span class="onb-dot"></span>
+        <span class="onb-dot"></span>
+        <span class="onb-dot"></span>
+        <span class="onb-dot"></span>
+      </div>
+      <h2 id="onbTitle">Добро пожаловать в ETT!</h2>
+
+      <div class="onb-step is-active" data-onb-step="1">
+        <div class="onb-icon">🎓</div>
+        <h3>Шаг 1. Карточки-перевёртыши</h3>
+        <p>Главная страница показывает 12 системных папок с английскими словами. Кликните по карточке — она перевернётся и покажет английское слово с примером употребления.</p>
+        <p class="muted">Так работает принцип активного вспоминания: мозг сначала пытается вспомнить перевод, и лишь потом проверяет себя.</p>
+      </div>
+
+      <div class="onb-step" data-onb-step="2" hidden>
+        <div class="onb-icon">🔊</div>
+        <h3>Шаг 2. Озвучка и режим повторения</h3>
+        <p>В режиме повторения есть кнопка 🔊 — браузер произнесёт английское слово вслух через Web Speech API. Так работает зрительно-слуховое двойное кодирование.</p>
+        <p>Запустите повторение кнопкой «🎓 Повторение» вверху или «Повторить группу» в заголовке секции.</p>
+      </div>
+
+      <div class="onb-step" data-onb-step="3" hidden>
+        <div class="onb-icon">📥</div>
+        <h3>Шаг 3. Импорт словаря</h3>
+        <p>Кнопка «📥 Импорт» позволяет загрузить реальные словари SMARTool (A1–B2) или простой CSV/TXT. Поддерживается пять режимов раскладки по группам.</p>
+      </div>
+
+      <div class="onb-step" data-onb-step="4" hidden>
+        <div class="onb-icon">👁️</div>
+        <h3>Шаг 4. Режим для слабовидящих</h3>
+        <p>Кнопка 👁️ вверху или в левом меню включает контрастную тему с увеличенным шрифтом и отключёнными анимациями.</p>
+      </div>
+
+      <div class="onb-step" data-onb-step="5" hidden>
+        <div class="onb-icon">📲</div>
+        <h3>Шаг 5. Установка на телефон</h3>
+        <p>ETT — это PWA (прогрессивное веб-приложение). На телефоне откройте меню браузера и нажмите «Установить приложение» или «Добавить на главный экран».</p>
+        <p class="muted">После установки ETT работает как обычное приложение: иконка на рабочем столе, запуск без адресной строки, работа офлайн.</p>
+      </div>
+
+      <div class="modal-actions onb-actions">
+        <button type="button" class="btn btn-ghost" id="onbSkip">Пропустить</button>
+        <span class="onb-spacer"></span>
+        <button type="button" class="btn btn-ghost" id="onbPrev" disabled>← Назад</button>
+        <button type="button" class="btn btn-primary" id="onbNext">Дальше →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== МОДАЛКА: ВЫБОР ТЕМ ДЛЯ ПОВТОРЕНИЯ ============== -->
+  <div class="modal-backdrop" id="studyThemesModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="studyThemesTitle">
+      <button class="modal-close" data-close>✕</button>
+      <h2 id="studyThemesTitle">🎓 Повторение по темам</h2>
+      <p class="muted">Отметьте папки, которые хотите повторить. Слова из всех выбранных папок будут перемешаны.</p>
+      <div class="themes-grid" id="themesGrid"></div>
+      <div class="themes-actions">
+        <button type="button" class="btn btn-ghost" id="themesSelectAll">✓ Выбрать все</button>
+        <button type="button" class="btn btn-ghost" id="themesClear">Очистить</button>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close>Отмена</button>
+        <button type="button" class="btn btn-primary" id="themesStart">Начать повторение</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== МОДАЛКА: ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ СЛОВА ============== -->
+  <div class="modal-backdrop" id="wordModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="wordModalTitle">
+      <button class="modal-close" data-close>✕</button>
+      <h2 id="wordModalTitle">Добавить слово</h2>
+      <form id="wordForm" autocomplete="off">
+        <div class="form-grid">
+          <label class="field">
+            <span>Английское слово</span>
+            <input type="text" id="fWord" required maxlength="80" pattern="^[A-Za-z\s\-'’]+$" title="Только английские буквы, пробел, дефис и апостроф">
+          </label>
+          <label class="field">
+            <span>Перевод (русский)</span>
+            <input type="text" id="fTranslation" required maxlength="80">
+          </label>
+          <label class="field field-wide">
+            <span>Пример употребления</span>
+            <input type="text" id="fExample" placeholder="She bought a yellow banana." maxlength="200">
+          </label>
+          <label class="field">
+            <span>Папка</span>
+            <select id="fFolder"></select>
+          </label>
+        </div>
+
+        <div class="img-block">
+          <span class="img-block-title">Картинка</span>
+          <div class="img-tabs">
+            <button type="button" class="img-tab is-active" data-img-tab="unsplash">Поиск Unsplash</button>
+            <button type="button" class="img-tab" data-img-tab="url">Прямая ссылка</button>
+          </div>
+          <div class="img-pane" data-img-pane="unsplash">
+            <div class="unsplash-row">
+              <input type="text" id="unsplashQuery" placeholder="Введите запрос, например: apple" maxlength="50">
+              <button type="button" id="btnUnsplashSearch">🔍 Найти</button>
+            </div>
+            <div class="unsplash-results" id="unsplashResults">
+              <span class="muted">Здесь появятся 3 превью</span>
+            </div>
+          </div>
+          <div class="img-pane" data-img-pane="url" hidden>
+            <div class="unsplash-row">
+              <input type="url" id="imgUrl" placeholder="https://images.unsplash.com/…" maxlength="500">
+              <button type="button" id="btnImgPreview">Превью</button>
+            </div>
+            <div class="img-preview" id="imgPreview"></div>
+          </div>
+        </div>
+
+        <input type="hidden" id="fImgUrl" value="">
+        <input type="hidden" id="fId" value="">
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" data-close>Отмена</button>
+          <button type="submit" class="btn btn-primary">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============== МОДАЛКА: ПЕРЕНОС СЛОВА ============== -->
+  <div class="modal-backdrop" id="moveModal" hidden>
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="moveModalTitle">
+      <button class="modal-close" data-close>✕</button>
+      <h2 id="moveModalTitle">Переместить / копировать слово</h2>
+      <p class="muted" id="moveWordInfo"></p>
+      <div class="move-list" id="moveList"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close>Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== МОДАЛКА: ИМПОРТ СЛОВАРЯ ============== -->
+  <div class="modal-backdrop" id="importModal" hidden>
+    <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="importModalTitle">
+      <button class="modal-close" data-close>✕</button>
+      <h2 id="importModalTitle">📥 Импорт реального словаря</h2>
+      <div class="import-grid">
+        <label class="field">
+          <span>Режим раскладки по группам</span>
+          <select id="importMode">
+            <option value="auto">🤖 Авто — в системные папки по теме</option>
+            <option value="level_topic">По уровням и темам (A1 · Еда)</option>
+            <option value="level">Только по уровням (🎓 A1, A2, B1, B2)</option>
+            <option value="topic">Только по темам (📚 Еда, Животные…)</option>
+            <option value="alpha">По алфавиту (🔤 A, B, C…)</option>
+            <option value="one">Все в одну папку</option>
+          </select>
+        </label>
+      </div>
+      <div class="import-sources">
+        <div class="import-source">
+          <span class="import-source-title">Загрузить файл (.csv / .txt / .json)</span>
+          <input type="file" id="importFile" accept=".csv,.txt,.json,text/csv,text/plain,application/json">
+        </div>
+        <div class="import-source">
+          <span class="import-source-title">Или импортировать по ссылке</span>
+          <div class="unsplash-row">
+            <input type="url" id="importUrl" placeholder="https://raw.githubusercontent.com/smartool/data-rus-eng/main/SMARTool_data_A1.csv" maxlength="500">
+            <button type="button" id="btnImportUrl">📥 Загрузить</button>
+          </div>
+        </div>
+      </div>
+      <div class="import-status" id="importStatus" hidden></div>
+
+      <div class="import-actions-row">
+        <button type="button" class="btn btn-primary" id="btnAutoImages">🔍 Найти картинки для всех слов</button>
+        <span class="muted">Подбирает картинки через Unsplash по английским словам</span>
+      </div>
+      <details class="import-help">
+        <summary>Источники словарей для справки</summary>
+        <ul>
+          <li>SMARTool (CC-BY 4.0): <a href="https://github.com/smartool/data-rus-eng" target="_blank" rel="noopener">github.com/smartool/data-rus-eng</a>
+            <ul>
+              <li><code>https://raw.githubusercontent.com/smartool/data-rus-eng/main/SMARTool_data_A1.csv</code></li>
+              <li><code>https://raw.githubusercontent.com/smartool/data-rus-eng/main/SMARTool_data_A2.csv</code></li>
+              <li><code>https://raw.githubusercontent.com/smartool/data-rus-eng/main/SMARTool_data_B1.csv</code></li>
+              <li><code>https://raw.githubusercontent.com/smartool/data-rus-eng/main/SMARTool_data_B2.csv</code></li>
+            </ul>
+          </li>
+          <li>Большой англо-русский словарь Mueller: <a href="https://mueller-dict.sourceforge.net/" target="_blank" rel="noopener">mueller-dict.sourceforge.net</a></li>
+        </ul>
+        <p class="muted">Поддерживаемые форматы: CSV словаря SMARTool (распознаётся по заголовкам колонок), простой формат «слово, перевод[, пример]» (разделители: запятая, таб, « - », «;») и JSON-массив.</p>
+      </details>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close>Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== МОДАЛКА: О ПРОЕКТЕ ============== -->
+  <div class="modal-backdrop" id="aboutModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+      <button class="modal-close" data-close>✕</button>
+      <h2 id="aboutTitle">ℹ️ О проекте</h2>
+      <div class="about-body">
+        <p><strong>English Today and Tomorrow</strong> (ETT) — бесплатное веб-приложение для изучения английской лексики методом визуальных ассоциаций.</p>
+        <p>Слоган: <em>«Учи сегодня — говори завтра»</em>.</p>
+        <p>В основе приложения лежат три принципа памяти: двойное кодирование Пайвио (слово + картинка), активное вспоминание (карточки-перевёртыши) и интервальное повторение (режим самопроверки по группам).</p>
+        <p>Приложение полностью работает в браузере: <strong>без бэкенда, без библиотек, без регистрации</strong>. Все данные хранятся локально через LocalStorage. Внешний запрос — только к API Unsplash для подбора картинок.</p>
+        <ul>
+          <li>12 системных папок × 12 слов = 144 единицы лексики в комплекте.</li>
+          <li>Создавайте свои папки и слова, редактируйте существующие.</li>
+          <li>Импортируйте реальные словари SMARTool (A1–B2) и Mueller.</li>
+          <li>Режим повторения с прогресс-баром и статистикой.</li>
+          <li>Озвучка английских слов через Web Speech API.</li>
+          <li>Тёмная тема и режим для слабовидящих.</li>
+          <li>PWA: устанавливается на телефон, работает офлайн.</li>
+          <li>Левое меню быстрой навигации и горячие клавиши.</li>
+        </ul>
+        <p class="muted">Индивидуальный итоговый проект ученика 9 класса. 2026 г.</p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" data-close>Понятно</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== ОВЕРЛЕЙ РЕЖИМА ПОВТОРЕНИЯ ============== -->
+  <div class="study-overlay" id="studyOverlay" hidden>
+    <div class="study-bar">
+      <div class="study-progress-wrap">
+        <div class="study-progress" id="studyProgress">0 / 0</div>
+        <div class="study-progress-bar">
+          <div class="study-progress-fill" id="studyProgressFill"></div>
+        </div>
+      </div>
+      <div class="study-controls-top">
+        <button class="btn btn-ghost" id="btnStudySpeak" title="Озвучить">🔊</button>
+        <button class="btn btn-ghost" id="btnToggleDir" title="Переключить направление">RU → EN</button>
+        <button class="btn btn-ghost" id="btnCloseStudy" title="Закрыть режим">✕ Закрыть</button>
+      </div>
+    </div>
+    <div class="study-stage" id="studyStage"></div>
+    <div class="study-actions" id="studyActions">
+      <button class="btn btn-success" id="btnKnow">✔ Знаю</button>
+      <button class="btn btn-danger" id="btnDontKnow">✖ Не знаю</button>
+      <button class="btn btn-primary" id="btnNext" disabled>Дальше →</button>
+    </div>
+    <div class="study-results" id="studyResults" hidden>
+      <h2>Тема пройдена! 🎉</h2>
+      <div class="results-grid" id="resultsGrid"></div>
+      <div class="results-buttons">
+        <button class="btn btn-primary" id="btnRestartStudy">↻ Ещё раз</button>
+        <button class="btn btn-ghost" id="btnExitStudy">✕ Выйти</button>
+      </div>
+    </div>
+    <div class="study-hint">Пробел — перевернуть · S — озвучить · → — следующее · Esc — закрыть</div>
+  </div>
+
+  <!-- ============== МОДАЛКА: НАСТРОЙКИ ОФОРМЛЕНИЯ ============== -->
+  <div class="modal-backdrop" id="settingsModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <button class="modal-close" data-close>✕</button>
+      <h2 id="settingsTitle">⚙️ Настройки оформления</h2>
+
+      <div class="settings-section">
+        <div class="settings-label">Цветовая тема</div>
+        <div class="theme-grid">
+          <button class="theme-option is-active" data-theme="" data-name="Светлая">
+            <div class="to-preview light-prev"></div>
+            <span>Светлая</span>
+          </button>
+          <button class="theme-option" data-theme="dark" data-name="Тёмная">
+            <div class="to-preview dark-prev"></div>
+            <span>Тёмная</span>
+          </button>
+          <button class="theme-option" data-theme="a11y" data-name="Контрастная">
+            <div class="to-preview a11y-prev"></div>
+            <span>Контрастная</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Готовые палитры</div>
+        <div class="palette-grid">
+          <button class="palette-option is-active" data-palette="ocean" data-name="Океан">
+            <div class="pal-preview" style="background:linear-gradient(135deg,#0284c7,#0f172a)"></div>
+            <span>🌊 Океан</span>
+          </button>
+          <button class="palette-option" data-palette="forest" data-name="Лес">
+            <div class="pal-preview" style="background:linear-gradient(135deg,#16a34a,#14532d)"></div>
+            <span>🌲 Лес</span>
+          </button>
+          <button class="palette-option" data-palette="sunset" data-name="Закат">
+            <div class="pal-preview" style="background:linear-gradient(135deg,#ea580c,#db2777)"></div>
+            <span>🌅 Закат</span>
+          </button>
+          <button class="palette-option" data-palette="lavender" data-name="Лаванда">
+            <div class="pal-preview" style="background:linear-gradient(135deg,#7c3aed,#c026d3)"></div>
+            <span>💜 Лаванда</span>
+          </button>
+          <button class="palette-option" data-palette="cherry" data-name="Вишня">
+            <div class="pal-preview" style="background:linear-gradient(135deg,#dc2626,#7f1d1d)"></div>
+            <span>🍒 Вишня</span>
+          </button>
+          <button class="palette-option" data-palette="mint" data-name="Мята">
+            <div class="pal-preview" style="background:linear-gradient(135deg,#0d9488,#134e4a)"></div>
+            <span>🍃 Мята</span>
+          </button>
+          <button class="palette-option" data-palette="gold" data-name="Золото">
+            <div class="pal-preview" style="background:linear-gradient(135deg,#ca8a04,#713f12)"></div>
+            <span>🏆 Золото</span>
+          </button>
+          <button class="palette-option" data-palette="mono" data-name="Монохром">
+            <div class="pal-preview" style="background:linear-gradient(135deg,#475569,#0f172a)"></div>
+            <span>⚫ Монохром</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Акцентный цвет</div>
+        <div class="accent-grid">
+          <button class="accent-option is-active" data-accent="#0284c7" style="background:#0284c7"></button>
+          <button class="accent-option" data-accent="#7c3aed" style="background:#7c3aed"></button>
+          <button class="accent-option" data-accent="#db2777" style="background:#db2777"></button>
+          <button class="accent-option" data-accent="#dc2626" style="background:#dc2626"></button>
+          <button class="accent-option" data-accent="#ea580c" style="background:#ea580c"></button>
+          <button class="accent-option" data-accent="#16a34a" style="background:#16a34a"></button>
+          <button class="accent-option" data-accent="#0d9488" style="background:#0d9488"></button>
+          <button class="accent-option" data-accent="#1e293b" style="background:#1e293b"></button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Шрифт</div>
+        <div class="font-grid">
+          <button class="font-option is-active" data-font="Inter" style="font-family:Inter,sans-serif">Inter — современный</button>
+          <button class="font-option" data-font="Roboto" style="font-family:Roboto,sans-serif">Roboto — классический</button>
+          <button class="font-option" data-font="Georgia" style="font-family:Georgia,serif">Georgia — серьёзный</button>
+          <button class="font-option" data-font="monospace" style="font-family:monospace">Monospace — код</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Размер шрифта</div>
+        <div class="size-grid">
+          <button class="size-option" data-size="14">Малый</button>
+          <button class="size-option is-active" data-size="16">Средний</button>
+          <button class="size-option" data-size="18">Большой</button>
+          <button class="size-option" data-size="20">Очень большой</button>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="resetSettings">Сбросить</button>
+        <button type="button" class="btn btn-primary" data-close>Готово</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== КОНТЕЙНЕР TOAST-УВЕДОМЛЕНИЙ ============== -->
+  <div class="toasts" id="toasts"></div>
+
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

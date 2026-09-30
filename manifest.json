@@ -1,0 +1,54 @@
+{
+  "name": "English Today and Tomorrow",
+  "short_name": "ETT",
+  "description": "Бесплатное веб-приложение для изучения английской лексики методом визуальных ассоциаций: карточки-перевёртыши, режим повторения, импорт словарей.",
+  "lang": "ru",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f1f5f9",
+  "theme_color": "#0f172a",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Повторение",
+      "short_name": "Повторение",
+      "description": "Запустить режим повторения всех слов",
+      "url": "./index.html?action=study"
+    },
+    {
+      "name": "Добавить слово",
+      "short_name": "Слово",
+      "description": "Открыть форму добавления слова",
+      "url": "./index.html?action=add"
+    },
+    {
+      "name": "Импорт словаря",
+      "short_name": "Импорт",
+      "description": "Импортировать CSV/JSON словарь",
+      "url": "./index.html?action=import"
+    }
+  ]
+}

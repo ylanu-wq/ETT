@@ -1,0 +1,4276 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>English Today and Tomorrow — учи сегодня, говори завтра</title>
+  <meta name="description" content="Бесплатное веб-приложение для изучения английской лексики методом визуальных ассоциаций: карточки-перевёртыши, режим повторения, импорт словарей, режим для слабовидящих, PWA для телефона.">
+
+  <!-- ============== CSP: защита от XSS и инъекций ============== -->
+  <!-- ============== PWA-мета ============== -->
+  <meta name="theme-color" content="#0f172a">
+  <meta name="color-scheme" content="light dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ETT">
+      
+  <!-- Шрифт Inter с Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+/* ============================================================
+ * style.css — ETT v4 (English Today and Tomorrow)
+ * ПРИНЦИПЫ:
+ *  1. Высокий контраст текста на любом фоне
+ *  2. Чёткие границы и разделители
+ *  3. Никаких полупрозрачных фонов (где живёт текст)
+ *  4. Плотный, читаемый шрифт
+ *  5. Простая понятная палитра
+ * ============================================================ */
+
+:root {
+  /* Палитра: тёмная для панелей, светлая для контента */
+  --c-dark:   #0f172a;   /* шапка, вкладки, футер */
+  --c-bg:     #f8fafc;   /* фон страницы */
+  --c-surface:#ffffff;   /* карточки, модалки */
+  --c-text:   #0f172a;   /* ОСНОВНОЙ ТЕКСТ — максимальный контраст */
+  --c-text-2: #334155;   /* вторичный текст */
+  --c-muted:  #64748b;   /* подсказки */
+  --c-accent: #0284c7;   /* акцент — насыщенный синий, читается на белом */
+  --c-accent-dark:#0369a1; /* акцент для тёмных фонов */
+  --c-border: #cbd5e1;   /* ЧЁТКАЯ граница */
+  --c-border-light:#e2e8f0;
+  --c-danger: #dc2626;
+  --c-success:#16a34a;
+
+  /* Тени */
+  --shadow-card: 0 1px 3px rgba(15,23,42,.1), 0 1px 2px rgba(15,23,42,.06);
+  --shadow-topbar: 0 2px 4px rgba(15,23,42,.1);
+  --shadow-modal: 0 10px 40px rgba(0,0,0,.25);
+
+  /* Радиусы */
+  --r-card: 12px;
+  --r-btn: 8px;
+  --r-modal: 14px;
+
+  /* Размеры */
+  --topbar-h: 130px;
+  --sidebar-w: 240px;
+  --maxw: 1280px;
+
+  --font-base: 16px;
+  --card-h: 160px;
+}
+
+/* ============== ТЁМНАЯ ТЕМА ============== */
+body.dark-theme {
+  --c-bg:     #0f172a;
+  --c-surface:#1e293b;
+  --c-text:   #f1f5f9;
+  --c-text-2: #cbd5e1;
+  --c-muted:  #94a3b8;
+  --c-border: #475569;
+  --c-border-light:#334155;
+  --c-accent: #38bdf8;
+  --c-accent-dark:#0ea5e9;
+  --shadow-card: 0 1px 3px rgba(0,0,0,.4);
+}
+
+/* ============== РЕЖИМ ДЛЯ СЛАБОВИДЯЩИХ ============== */
+body.a11y {
+  --font-base: 22px;
+  --card-h: 220px;
+  --c-text:   #000000;
+  --c-text-2: #000000;
+  --c-bg:     #ffffff;
+  --c-surface:#ffffff;
+  --c-muted:  #1f2937;
+  --c-accent: #0000ff;
+  --c-accent-dark:#0000ff;
+  --c-border: #000000;
+  --c-border-light:#000000;
+  --c-dark:   #000000;
+  --c-danger: #cc0000;
+  --c-success:#006600;
+}
+body.a11y *,
+body.a11y *::before,
+body.a11y *::after {
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+}
+
+/* ============== СБРОС ============== */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-size: var(--font-base);
+  line-height: 1.55;
+  padding-top: var(--topbar-h);
+  padding-left: var(--sidebar-w);
+  -webkit-font-smoothing: antialiased;
+  transition: padding-left .2s, background .2s, color .2s;
+}
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
+ul { margin: 0; padding-left: 1.1rem; }
+a { color: var(--c-accent); }
+.hidden { display: none !important; }
+
+body.sidebar-closed { padding-left: 0; }
+body.sidebar-closed .sidebar { transform: translateX(-100%); }
+
+/* ============== ВЕРХНЯЯ ПАНЕЛЬ ============== */
+.topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  background: var(--c-dark);
+  color: #ffffff;
+  z-index: 100;
+  box-shadow: var(--shadow-topbar);
+  border-bottom: 3px solid var(--c-accent);
+}
+.topbar-row {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Бургер */
+.burger {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.25);
+  color: #fff;
+  border-radius: var(--r-btn);
+  width: 40px; height: 40px;
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.burger:hover { background: rgba(255,255,255,.2); }
+
+/* Логотип */
+.brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; min-width: 0; }
+.logo {
+  width: 46px; height: 46px;
+  background: #ffffff;
+  border: 2px solid var(--c-accent);
+  border-radius: 10px;
+  color: #0f172a;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 2px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,.2);
+}
+.logo-book { font-size: 14px; margin-left: 3px; }
+.brand-text { min-width: 0; }
+.brand-name {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #ffffff;
+}
+.brand-slogan {
+  font-size: 11px;
+  color: var(--c-accent);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Поиск */
+.search-wrap { flex: 1; max-width: 340px; min-width: 0; }
+.search-wrap input {
+  width: 100%;
+  padding: 9px 14px;
+  border-radius: var(--r-btn);
+  border: 1px solid rgba(255,255,255,.25);
+  background: rgba(255,255,255,.1);
+  color: #ffffff;
+  font-size: 14px;
+  outline: none;
+}
+.search-wrap input::placeholder { color: rgba(255,255,255,.65); }
+.search-wrap input:focus {
+  border-color: var(--c-accent);
+  background: rgba(255,255,255,.18);
+}
+
+/* Переключатели тем */
+.theme-toggles { display: flex; gap: 4px; flex-shrink: 0; }
+.theme-btn {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.25);
+  color: #fff;
+  border-radius: var(--r-btn);
+  width: 38px; height: 38px;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.theme-btn:hover { background: rgba(255,255,255,.2); }
+.theme-btn.is-active {
+  background: var(--c-accent);
+  color: #fff;
+  border-color: var(--c-accent);
+}
+
+/* Кнопки действий */
+.actions { display: flex; gap: 6px; flex-shrink: 0; }
+.btn {
+  border: 1px solid transparent;
+  border-radius: var(--r-btn);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background .12s, transform .06s;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  background: var(--c-accent);
+  color: #ffffff;
+}
+.btn-primary:hover { background: var(--c-accent-dark); }
+.btn-ghost {
+  background: rgba(255,255,255,.1);
+  color: #ffffff;
+  border-color: rgba(255,255,255,.25);
+}
+.btn-ghost:hover { background: rgba(255,255,255,.2); }
+.btn-success { background: var(--c-success); color: #fff; }
+.btn-danger  { background: var(--c-danger);  color: #fff; }
+
+/* В основной области (на светлом фоне) кнопки другие */
+.main .btn-primary {
+  background: var(--c-accent);
+  color: #fff;
+}
+.main .btn-primary:hover { background: var(--c-accent-dark); }
+.main .btn-ghost {
+  background: var(--c-surface);
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+}
+.main .btn-ghost:hover { background: var(--c-bg); }
+
+/* ============== ЛЕНТА ВКЛАДОК ============== */
+.tabs {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 16px 8px;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  position: sticky;
+  top: 64px;
+}
+.tabs::-webkit-scrollbar { height: 5px; }
+.tabs::-webkit-scrollbar-thumb { background: var(--c-accent); border-radius: 3px; }
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  background: rgba(255,255,255,.08);
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  position: relative;
+}
+.tab:hover { background: rgba(255,255,255,.18); }
+.tab.is-active {
+  background: var(--c-accent);
+  color: #ffffff;
+  border-color: var(--c-accent);
+}
+.tab .tab-icon { font-size: 15px; }
+.tab .tab-count {
+  background: rgba(0,0,0,.25);
+  color: #fff;
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.tab.is-active .tab-count { background: rgba(0,0,0,.3); }
+.tab-progress {
+  position: absolute;
+  bottom: -1px; left: 8px; right: 8px;
+  height: 3px;
+  background: rgba(255,255,255,.15);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.tab-progress-fill {
+  height: 100%;
+  background: var(--c-success);
+  transition: width .3s;
+}
+.tab .tab-del {
+  background: none;
+  border: none;
+  color: #fff;
+  opacity: .6;
+  padding: 0 0 0 4px;
+  font-size: 13px;
+  line-height: 1;
+}
+.tab .tab-del:hover { opacity: 1; color: #fca5a5; }
+.tab-add {
+  border-style: dashed;
+  border-color: var(--c-accent);
+  color: var(--c-accent);
+}
+
+/* ============== ЛЕВОЕ МЕНЮ ============== */
+.sidebar {
+  position: fixed;
+  top: var(--topbar-h);
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-w);
+  background: var(--c-surface);
+  border-right: 1px solid var(--c-border);
+  box-shadow: 2px 0 8px rgba(15,23,42,.04);
+  overflow-y: auto;
+  z-index: 90;
+  padding: 16px 12px;
+  transition: transform .25s ease;
+}
+.sidebar-section { margin-bottom: 18px; }
+.sidebar-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--c-muted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 6px;
+  padding: 0 6px;
+}
+.side-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: none;
+  border: 1px solid transparent;
+  color: var(--c-text);
+  padding: 9px 10px;
+  border-radius: var(--r-btn);
+  font-size: 13px;
+  text-align: left;
+  transition: background .12s, border-color .12s;
+}
+.side-link:hover {
+  background: var(--c-bg);
+  border-color: var(--c-border-light);
+}
+.side-link.is-active {
+  background: var(--c-accent);
+  color: #fff;
+  font-weight: 600;
+}
+.side-stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--c-text-2);
+}
+.side-stat strong { color: var(--c-accent); font-size: 14px; }
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 89;
+  animation: fade-in .15s ease;
+}
+
+/* ============== КОМПАКТНЫЙ ПРИВЕТСТВЕННЫЙ БЛОК ============== */
+.welcome-compact {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-left: 4px solid var(--c-accent);
+  border-radius: 10px;
+  box-shadow: var(--shadow-card);
+  flex-wrap: wrap;
+}
+.welcome-compact .wc-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+.welcome-compact .wc-text {
+  flex-shrink: 0;
+  min-width: 0;
+}
+.welcome-compact .wc-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c-text);
+  line-height: 1.2;
+}
+.welcome-compact .wc-slogan {
+  font-size: 12px;
+  color: var(--c-accent);
+  font-weight: 600;
+  font-style: italic;
+}
+.welcome-compact .wc-stats {
+  display: flex;
+  gap: 14px;
+  flex: 1;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--c-muted);
+  flex-wrap: wrap;
+}
+.welcome-compact .wc-stats strong {
+  color: var(--c-accent);
+  font-size: 16px;
+  font-weight: 800;
+  margin-right: 3px;
+}
+.welcome-compact .wc-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Удаляем старый большой welcome */
+.welcome, .welcome-icon, .welcome-title, .welcome-slogan,
+.welcome-stats, .ws-stat, .ws-num, .ws-lbl, .welcome-actions,
+.section-title-h2, .folders-grid, .folder-card,
+.fc-icon, .fc-name, .fc-count, .fc-action { display: none; }
+
+/* ============== ХЛЕБНЫЕ КРОШКИ ============== */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--c-muted);
+  flex-wrap: wrap;
+}
+.breadcrumb a {
+  color: var(--c-accent);
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+.breadcrumb a:hover { text-decoration: underline; }
+.bc-sep { color: var(--c-muted); }
+.bc-current {
+  color: var(--c-text);
+  font-weight: 600;
+}
+
+/* ============== СТИШОК-ЗАПОМИНАЛКА ============== */
+.rhyme-block {
+  background: linear-gradient(135deg, rgba(2,132,199,.06) 0%, rgba(2,132,199,.02) 100%);
+  border: 1px solid var(--c-border);
+  border-left: 4px solid var(--c-accent);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  position: relative;
+}
+.rhyme-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-accent);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 8px;
+}
+.rhyme-text {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--c-text);
+  margin: 0 0 10px;
+  white-space: pre-wrap;
+  font-weight: 500;
+  font-style: italic;
+}
+.rhyme-speak {
+  font-size: 12px !important;
+  padding: 5px 12px !important;
+}
+
+/* ============== НАСТРОЙКИ ОФОРМЛЕНИЯ ============== */
+.settings-section { margin-bottom: 18px; }
+.settings-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c-text);
+  margin-bottom: 8px;
+}
+.theme-grid, .font-grid, .size-grid, .accent-grid, .palette-grid {
+  display: grid;
+  gap: 8px;
+}
+.theme-grid { grid-template-columns: repeat(3, 1fr); }
+.accent-grid { grid-template-columns: repeat(8, 1fr); }
+.font-grid, .size-grid { grid-template-columns: repeat(2, 1fr); }
+.palette-grid { grid-template-columns: repeat(4, 1fr); }
+
+.palette-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 6px;
+  background: var(--c-bg);
+  border: 2px solid var(--c-border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--c-text);
+  font-size: 11px;
+  font-weight: 600;
+  transition: border-color .12s, background .12s;
+}
+.palette-option:hover { border-color: var(--c-accent); }
+.palette-option.is-active {
+  border-color: var(--c-accent);
+  background: rgba(2,132,199,.08);
+}
+.pal-preview {
+  width: 100%;
+  height: 36px;
+  border-radius: 6px;
+  border: 1px solid var(--c-border);
+}
+
+.theme-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  background: var(--c-bg);
+  border: 2px solid var(--c-border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--c-text);
+  font-size: 12px;
+  font-weight: 600;
+  transition: border-color .12s, background .12s;
+}
+.theme-option:hover { border-color: var(--c-accent); }
+.theme-option.is-active {
+  border-color: var(--c-accent);
+  background: rgba(2,132,199,.08);
+}
+.to-preview {
+  width: 100%;
+  height: 40px;
+  border-radius: 6px;
+  border: 1px solid var(--c-border);
+}
+.light-prev { background: linear-gradient(135deg, #ffffff 50%, #f8fafc 50%); }
+.dark-prev { background: linear-gradient(135deg, #0f172a 50%, #1e293b 50%); }
+.a11y-prev { background: #ffffff; border: 2px solid #000; }
+
+.accent-option {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform .1s, border-color .12s;
+  padding: 0;
+}
+.accent-option:hover { transform: scale(1.1); }
+.accent-option.is-active {
+  border-color: var(--c-text);
+  box-shadow: 0 0 0 2px var(--c-surface), 0 0 0 4px var(--c-accent);
+}
+
+.font-option, .size-option {
+  padding: 10px 12px;
+  background: var(--c-bg);
+  border: 2px solid var(--c-border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--c-text);
+  font-size: 13px;
+  font-weight: 600;
+  transition: border-color .12s, background .12s;
+}
+.font-option:hover, .size-option:hover { border-color: var(--c-accent); }
+.font-option.is-active, .size-option.is-active {
+  border-color: var(--c-accent);
+  background: rgba(2,132,199,.08);
+}
+
+/* ============== ОСНОВНАЯ ОБЛАСТЬ ============== */
+.main {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 18px 16px 80px;
+  min-height: calc(100vh - var(--topbar-h) - 60px);
+}
+
+/* Секция */
+.section { margin-bottom: 28px; }
+.section-header {
+  position: sticky;
+  top: calc(var(--topbar-h) - 8px);
+  z-index: 5;
+  background: var(--c-bg);
+  padding: 12px 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 2px solid var(--c-border);
+  margin-bottom: 14px;
+}
+.section-header .sec-icon { font-size: 24px; }
+.section-header .sec-title {
+  font-weight: 700;
+  font-size: 18px;
+  flex: 1;
+  color: var(--c-text);
+}
+.section-header .sec-count {
+  background: var(--c-surface);
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.section-header .btn-study {
+  background: var(--c-dark);
+  color: #fff;
+  border: 1px solid var(--c-dark);
+  border-radius: var(--r-btn);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.section-header .btn-study:hover { background: #1e293b; }
+
+/* Сетка карточек */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+/* ============== КАРТОЧКА-ПЕРЕВЁРТЫШ ============== */
+.card {
+  perspective: 1000px;
+  height: var(--card-h);
+  cursor: pointer;
+}
+.card-inner {
+  position: relative;
+  width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform .5s cubic-bezier(.4,.2,.2,1);
+}
+.card.is-flipped .card-inner { transform: rotateY(180deg); }
+
+.card-face {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-card);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  overflow: hidden;
+}
+/* ЛИЦЕВАЯ сторона — БЕЛАЯ с ЧЁРНОЙ рамкой, чёрный текст */
+.card-front {
+  background: var(--c-surface);
+  color: var(--c-text);
+  border: 2px solid var(--c-border);
+  box-shadow: var(--shadow-card);
+}
+.card-front .card-word {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: var(--c-text);
+  letter-spacing: -0.3px;
+}
+.card-front .card-hint {
+  font-size: 11px;
+  color: var(--c-muted);
+  letter-spacing: .3px;
+  font-weight: 500;
+}
+/* ОБОРОТ — ТЁМНАЯ с АКЦЕНТНОЙ рамкой, белый текст */
+.card-back {
+  background: var(--c-dark);
+  color: #ffffff;
+  border: 2px solid var(--c-accent);
+  transform: rotateY(180deg);
+  box-shadow: var(--shadow-card);
+}
+.card-back .card-word {
+  color: var(--c-accent);
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  letter-spacing: -0.3px;
+}
+.card-back .card-example {
+  font-size: 13px;
+  color: #e2e8f0;
+  font-style: italic;
+  line-height: 1.4;
+}
+.card-back .card-speak {
+  position: absolute;
+  top: 8px; right: 8px;
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.3);
+  color: #fff;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+}
+.card-back .card-speak:hover {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+}
+
+/* Панель действий — всегда видна */
+.card-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin-top: 6px;
+  opacity: 1;
+  transition: opacity .15s;
+}
+.card-actions button {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 11px;
+  color: var(--c-text-2);
+  font-weight: 600;
+  min-height: 28px;
+}
+.card-actions button:hover {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+  color: #ffffff;
+}
+.card-actions .act-del:hover {
+  background: var(--c-danger);
+  border-color: var(--c-danger);
+  color: #fff;
+}
+.card-actions .act-edit:hover {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+  color: #fff;
+}
+
+/* Пустое состояние */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--c-muted);
+}
+.empty-state .empty-icon { font-size: 56px; margin-bottom: 14px; }
+.empty-state h3 {
+  margin: 0 0 8px;
+  color: var(--c-text);
+  font-size: 20px;
+}
+.empty-state p { margin: 0 0 18px; }
+.empty-state .empty-actions {
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+}
+
+/* ============== ФУТЕР ============== */
+.footer {
+  background: var(--c-dark);
+  color: #ffffff;
+  padding: 14px 16px;
+  font-size: 12px;
+  margin-left: var(--sidebar-w);
+  border-top: 3px solid var(--c-accent);
+  transition: margin-left .2s;
+}
+body.sidebar-closed .footer { margin-left: 0; }
+.footer-row {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.footer-tech { color: var(--c-accent); }
+
+/* ============== МОДАЛКИ ============== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+  animation: fade-in .15s ease;
+}
+.modal-backdrop[hidden] { display: none; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  background: var(--c-surface);
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-modal);
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 22px 24px;
+  position: relative;
+  box-shadow: var(--shadow-modal);
+}
+.modal-sm { max-width: 420px; }
+.modal-lg { max-width: 720px; }
+.modal-close {
+  position: absolute;
+  top: 12px; right: 14px;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  font-size: 16px;
+  color: var(--c-text);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-close:hover {
+  background: var(--c-danger);
+  color: #fff;
+  border-color: var(--c-danger);
+}
+.modal h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+  color: var(--c-text);
+  font-weight: 700;
+}
+.muted {
+  color: var(--c-muted);
+  font-size: 13px;
+}
+
+/* Форма */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field-wide { grid-column: 1 / -1; }
+.field span {
+  font-size: 12px;
+  color: var(--c-text-2);
+  font-weight: 600;
+}
+.field input, .field select {
+  padding: 9px 12px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-btn);
+  font-size: 14px;
+  background: var(--c-surface);
+  color: var(--c-text);
+  outline: none;
+  transition: border-color .12s;
+}
+.field input:focus, .field select:focus {
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 3px rgba(2,132,199,.15);
+}
+
+/* Блок картинки */
+.img-block {
+  margin-bottom: 16px;
+  border-top: 1px solid var(--c-border);
+  padding-top: 14px;
+}
+.img-block-title {
+  font-size: 12px;
+  color: var(--c-text-2);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 8px;
+}
+.img-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.img-tab {
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  padding: 6px 12px;
+  border-radius: var(--r-btn);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-text-2);
+}
+.img-tab.is-active {
+  background: var(--c-dark);
+  color: #fff;
+  border-color: var(--c-dark);
+}
+
+.unsplash-row { display: flex; gap: 6px; margin-bottom: 10px; }
+.unsplash-row input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-btn);
+  font-size: 13px;
+  background: var(--c-surface);
+  color: var(--c-text);
+  outline: none;
+}
+.unsplash-row input:focus {
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 3px rgba(2,132,199,.15);
+}
+.unsplash-row button {
+  padding: 8px 14px;
+  background: var(--c-accent);
+  color: #fff;
+  border: 1px solid var(--c-accent);
+  border-radius: var(--r-btn);
+  font-weight: 600;
+  font-size: 13px;
+}
+.unsplash-row button:hover { background: var(--c-accent-dark); }
+
+.unsplash-results {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  min-height: 80px;
+  padding: 6px;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-btn);
+  align-items: center;
+  justify-items: center;
+}
+.unsplash-results .muted { grid-column: 1 / -1; }
+.unsplash-thumb {
+  width: 100%; height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+.unsplash-thumb:hover { border-color: var(--c-accent); }
+.unsplash-thumb.is-selected {
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 2px rgba(2,132,199,.3);
+}
+
+.img-preview {
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-btn);
+  padding: 6px;
+}
+.img-preview img {
+  max-width: 100%; max-height: 120px;
+  border-radius: 6px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--c-border);
+}
+.modal-actions .btn-primary,
+.modal-actions .btn-ghost {
+  padding: 9px 18px;
+  font-size: 14px;
+}
+.modal-actions .btn-ghost {
+  background: var(--c-bg);
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+}
+.modal-actions .btn-ghost:hover {
+  background: var(--c-border-light);
+}
+
+/* Список папок в окне переноса */
+.move-list {
+  display: flex; flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.move-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-btn);
+  cursor: pointer;
+  color: var(--c-text);
+}
+.move-item:hover {
+  border-color: var(--c-accent);
+  background: var(--c-surface);
+}
+.move-item .mi-icon { font-size: 18px; }
+.move-item .mi-name { flex: 1; font-weight: 500; }
+.move-item .mi-action { font-size: 11px; color: var(--c-muted); }
+
+/* Импорт */
+.import-grid { margin-bottom: 16px; }
+.import-sources {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.import-source {
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  padding: 12px;
+  border-radius: var(--r-btn);
+}
+.import-source-title {
+  font-size: 12px;
+  color: var(--c-text-2);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 6px;
+}
+.import-status {
+  background: #dcfce7;
+  border: 1px solid var(--c-success);
+  color: #14532d;
+  padding: 10px 14px;
+  border-radius: var(--r-btn);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+body.dark-theme .import-status {
+  background: rgba(22,163,74,.15);
+  color: #86efac;
+}
+.import-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: rgba(2,132,199,.06);
+  border: 1px solid var(--c-border);
+  border-left: 4px solid var(--c-accent);
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+.import-actions-row .btn { flex-shrink: 0; }
+
+.import-help {
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  padding: 12px;
+  border-radius: var(--r-btn);
+  font-size: 12px;
+}
+.import-help summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--c-text);
+}
+.import-help ul { margin: 8px 0; color: var(--c-text-2); }
+.import-help code {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-light);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11px;
+  word-break: break-all;
+  color: var(--c-text);
+}
+
+/* О проекте */
+.about-body p { margin: 0 0 10px; font-size: 14px; line-height: 1.55; color: var(--c-text-2); }
+.about-body ul { font-size: 14px; color: var(--c-text-2); }
+.about-body strong { color: var(--c-text); }
+
+/* ============== ОНБОРДИНГ ============== */
+.onboarding-modal { max-width: 480px; }
+.onb-progress { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+.onb-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--c-border);
+  transition: background .2s, width .2s;
+}
+.onb-dot.is-active {
+  background: var(--c-accent);
+  width: 24px;
+  border-radius: 4px;
+}
+.onb-step { text-align: center; padding: 10px 0; }
+.onb-step[hidden] { display: none; }
+.onb-icon { font-size: 56px; margin-bottom: 8px; }
+.onb-step h3 {
+  margin: 0 0 8px;
+  color: var(--c-text);
+  font-size: 18px;
+  font-weight: 700;
+}
+.onb-step p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--c-text-2);
+}
+.onb-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.onb-spacer { flex: 1; }
+
+/* ============== ВЫБОР ТЕМ ============== */
+.themes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  max-height: 360px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+.theme-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--c-bg);
+  border: 2px solid var(--c-border);
+  border-radius: var(--r-btn);
+  cursor: pointer;
+  color: var(--c-text);
+  transition: border-color .12s, background .12s;
+}
+.theme-chip:hover { border-color: var(--c-accent); }
+.theme-chip.is-selected {
+  border-color: var(--c-accent);
+  background: rgba(2,132,199,.08);
+}
+.theme-chip .tc-icon { font-size: 20px; }
+.theme-chip .tc-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+}
+.theme-chip .tc-count {
+  font-size: 11px;
+  color: var(--c-muted);
+}
+.theme-chip .tc-check {
+  width: 18px; height: 18px;
+  border: 2px solid var(--c-border);
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  color: transparent;
+}
+.theme-chip.is-selected .tc-check {
+  border-color: var(--c-accent);
+  background: var(--c-accent);
+  color: #fff;
+}
+.themes-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* ============== РЕЖИМ ПОВТОРЕНИЯ ============== */
+.study-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--c-dark);
+  color: #ffffff;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  animation: fade-in .2s ease;
+}
+.study-overlay[hidden] { display: none; }
+.study-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  gap: 14px;
+}
+.study-progress-wrap { flex: 1; max-width: 420px; }
+.study-progress {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-accent);
+  margin-bottom: 6px;
+}
+.study-progress-bar {
+  height: 8px;
+  background: rgba(255,255,255,.15);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.2);
+}
+.study-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-accent), var(--c-success));
+  width: 0;
+  transition: width .3s ease;
+}
+.study-controls-top { display: flex; gap: 6px; }
+.study-controls-top .btn-ghost {
+  background: rgba(255,255,255,.1);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.25);
+}
+.study-controls-top .btn-ghost:hover {
+  background: rgba(255,255,255,.2);
+}
+
+.study-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.flip-card {
+  width: min(420px, 90vw);
+  height: min(540px, 65vh);
+  perspective: 1400px;
+  cursor: pointer;
+}
+.flip-inner {
+  position: relative;
+  width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform .55s cubic-bezier(.4,.2,.2,1);
+}
+.flip-card.is-flipped .flip-inner { transform: rotateY(180deg); }
+.flip-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0,0,0,.4);
+}
+/* Лицевая сторона — тёмная с акцентной рамкой */
+.flip-front-side {
+  background: #1e293b;
+  border: 2px solid var(--c-accent);
+}
+/* Оборот — светлее, чтобы английское слово хорошо читалось */
+.flip-back-side {
+  background: #0f172a;
+  border: 2px solid var(--c-accent);
+  transform: rotateY(180deg);
+}
+.flip-img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+/* Крупное слово на лицевой стороне */
+.flip-word {
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+/* Подпись "english" / "перевод" на обороте */
+.flip-back-label {
+  font-size: 11px;
+  color: var(--c-accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+/* Английское слово на обороте — крупно, акцентным цветом, очень заметно */
+.flip-back-word {
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--c-accent);
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+  text-shadow: 0 0 20px rgba(56,189,248,.4);
+}
+.flip-example {
+  font-size: 14px;
+  font-style: italic;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+.flip-hint {
+  font-size: 11px;
+  color: rgba(255,255,255,.5);
+  letter-spacing: .5px;
+}
+
+.study-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding-top: 14px;
+  flex-wrap: wrap;
+}
+.study-actions .btn {
+  padding: 10px 22px;
+  font-size: 14px;
+}
+.study-actions .btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.study-results {
+  text-align: center;
+  padding: 20px;
+}
+.study-results h2 {
+  font-size: 28px;
+  color: var(--c-accent);
+  margin-bottom: 16px;
+  font-weight: 800;
+}
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  max-width: 480px;
+  margin: 0 auto 18px;
+}
+.result-stat {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 12px;
+  padding: 14px;
+}
+.result-stat .rs-num {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--c-accent);
+  display: block;
+}
+.result-stat .rs-lbl {
+  font-size: 12px;
+  color: #cbd5e1;
+}
+.results-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.study-hint {
+  text-align: center;
+  font-size: 11px;
+  color: rgba(255,255,255,.5);
+  padding-top: 12px;
+  letter-spacing: .3px;
+}
+
+/* ============== TOAST ============== */
+.toasts {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  background: var(--c-dark);
+  color: #ffffff;
+  padding: 10px 16px;
+  border-radius: var(--r-btn);
+  font-size: 13px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.2);
+  animation: slide-in .2s ease, fade-out .3s ease 2.5s forwards;
+  border-left: 3px solid var(--c-accent);
+  max-width: 320px;
+}
+.toast.is-error { border-left-color: var(--c-danger); }
+.toast.is-success { border-left-color: var(--c-success); }
+@keyframes slide-in { from { transform: translateX(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fade-out { to { opacity: 0; transform: translateY(8px); } }
+
+/* ============== АДАПТИВ ============== */
+@media (max-width: 1100px) {
+  :root { --sidebar-w: 210px; }
+  .brand-name { font-size: 13px; }
+  .actions .btn { padding: 7px 10px; font-size: 12px; }
+}
+
+@media (max-width: 860px) {
+  :root { --topbar-h: 120px; --sidebar-w: 260px; }
+  body { padding-left: 0; }
+  body:not(.sidebar-open) .sidebar { transform: translateX(-100%); }
+  .footer { margin-left: 0; }
+
+  .topbar-row { flex-wrap: wrap; padding: 8px 12px; gap: 8px; }
+  .brand-text .brand-slogan { display: none; }
+  .search-wrap { order: 4; flex-basis: 100%; max-width: none; }
+  .actions { flex: 1; justify-content: flex-end; }
+  .btn { padding: 7px 10px; font-size: 12px; }
+  .tabs { top: 56px; padding: 0 12px 6px; }
+  .cards-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .card { height: 140px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .import-sources { grid-template-columns: 1fr; }
+  .results-grid { grid-template-columns: 1fr; }
+  .themes-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 640px) {
+  :root { --topbar-h: 108px; }
+  .brand-text { display: none; }
+  .actions .btn { padding: 7px 8px; font-size: 11px; }
+  .actions .btn-label { display: none; }
+  .cards-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+  .card { height: 120px; }
+  .card-front .card-word, .card-back .card-word { font-size: 17px; }
+  .card-front .card-hint, .card-back .card-example { font-size: 10px; }
+  .section-header .sec-title { font-size: 15px; }
+  .section-header .btn-study { padding: 5px 8px; font-size: 11px; }
+  .modal { padding: 18px 16px; max-height: 95vh; }
+  .study-overlay {
+    padding: 12px;
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  .flip-card { height: min(460px, 70vh); }
+  .flip-word { font-size: 22px; }
+  .flip-translation { font-size: 16px; }
+  .study-bar { flex-direction: column; align-items: stretch; gap: 8px; }
+  .study-controls-top { justify-content: flex-end; }
+  .themes-grid { grid-template-columns: 1fr; }
+  .results-grid { grid-template-columns: 1fr; }
+
+  .topbar { padding-top: env(safe-area-inset-top); }
+  .sidebar { width: 85vw; max-width: 320px; }
+  .btn, .theme-btn, .burger { min-height: 44px; min-width: 44px; }
+  .tab { min-height: 36px; }
+  .card-actions button { min-width: 36px; min-height: 36px; padding: 6px 10px; }
+  .toasts { bottom: max(20px, env(safe-area-inset-bottom)); }
+}
+
+@media (display-mode: standalone) {
+  body { user-select: none; -webkit-user-select: none; }
+  input, textarea, [contenteditable] { user-select: text; -webkit-user-select: text; }
+  .topbar { padding-top: env(safe-area-inset-top); }
+  .footer { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+@media print {
+  .topbar, .sidebar, .footer, .toasts, .study-overlay, .modal-backdrop { display: none !important; }
+  body { padding: 0; }
+  .main { padding: 0; }
+}
+
+</style>
+</head>
+<body>
+
+  <!-- ============== ЗАКРЕПЛЁННАЯ ВЕРХНЯЯ ПАНЕЛЬ ============== -->
+  <header class="topbar">
+    <div class="topbar-row">
+      <!-- Кнопка-бургер для левого меню -->
+      <button class="burger" id="burger" aria-label="Меню">☰</button>
+
+      <!-- Логотип -->
+      <div class="brand">
+        <div class="logo" aria-hidden="true">ETT<span class="logo-book">📖</span></div>
+        <div class="brand-text">
+          <div class="brand-name">English Today and Tomorrow</div>
+          <div class="brand-slogan">Учи сегодня — говори завтра</div>
+        </div>
+      </div>
+
+      <!-- Живой поиск -->
+      <div class="search-wrap">
+        <input id="search" type="search" placeholder="🔍 Поиск… (нажмите «/»)" autocomplete="off" maxlength="100">
+      </div>
+
+      <!-- Переключатели тем -->
+      <div class="theme-toggles">
+        <button class="theme-btn" id="btnDarkMode" title="Тёмная тема" aria-label="Тёмная тема">🌙</button>
+        <button class="theme-btn" id="btnA11y" title="Режим для слабовидящих" aria-label="Режим для слабовидящих">👁️</button>
+        <!-- Кнопка установки PWA (показывается только когда доступна) -->
+        <button class="theme-btn hidden" id="btnInstall" title="Установить приложение" aria-label="Установить приложение">📲</button>
+      </div>
+
+      <!-- Кнопки действий -->
+      <div class="actions">
+        <button class="btn btn-ghost" id="btnStudyAll" title="Режим повторения">🎓 Повторение</button>
+        <button class="btn btn-primary" id="btnAddWord" title="Добавить слово">＋ Слово</button>
+        <button class="btn btn-ghost" id="btnImport" title="Импорт реального словаря">📥 Импорт</button>
+        <button class="btn btn-ghost" id="btnAbout" title="О проекте">ℹ️ О проекте</button>
+        <button class="btn btn-ghost" id="btnSettings" title="Настройки оформления">⚙️ Тема</button>
+      </div>
+    </div>
+
+    <!-- ЛИПКАЯ горизонтальная лента вкладок-папок -->
+    <nav class="tabs" id="tabs" aria-label="Папки"></nav>
+  </header>
+
+  <!-- ============== ЛЕВОЕ БОКОВОЕ МЕНЮ ============== -->
+  <aside class="sidebar" id="sidebar" aria-label="Быстрая навигация">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Навигация</div>
+      <button class="side-link" data-scroll="top">⬆️ Наверх</button>
+      <button class="side-link" data-jump-folder="all">📚 Все слова</button>
+      <div id="sideFolders"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Действия</div>
+      <button class="side-link" id="sideAddWord">＋ Добавить слово</button>
+      <button class="side-link" id="sideStudy">🎓 Повторение</button>
+      <button class="side-link" id="sideStudyThemes">🎓 По темам</button>
+      <button class="side-link" id="sideImport">📥 Импорт словаря</button>
+      <button class="side-link" id="sideInstall" hidden>📲 Установить приложение</button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Темы оформления</div>
+      <button class="side-link" id="sideDark">🌙 Тёмная тема</button>
+      <button class="side-link" id="sideA11y">👁️ Для слабовидящих</button>
+      <button class="side-link" id="sideHelp">❓ Обучение</button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Статистика</div>
+      <div class="side-stat"><span>Всего слов:</span> <strong id="statTotal">0</strong></div>
+      <div class="side-stat"><span>Изучено (всё время):</span> <strong id="statLearned">0</strong></div>
+      <div class="side-stat"><span>Лучшая серия:</span> <strong id="statBest">0</strong></div>
+      <button class="side-link" id="sideResetStats" style="margin-top:8px;font-size:12px;color:var(--c-danger)">🗑 Сбросить статистику</button>
+    </div>
+  </aside>
+
+  <!-- Затемнение фона при открытом меню (на мобильных) -->
+  <div class="sidebar-overlay" id="sidebarOverlay" hidden></div>
+
+  <!-- ============== ОСНОВНАЯ ОБЛАСТЬ ============== -->
+  <main class="main" id="main">
+    <!-- Приветственный блок и сетка групп рендерятся динамически -->
+  </main>
+
+  <!-- ============== ФУТЕР ============== -->
+  <footer class="footer">
+    <div class="footer-row">
+      <span>© <span id="year"></span> English Today and Tomorrow</span>
+      <span class="footer-tech">HTML5 · CSS3 · Vanilla JS · PWA · Web Speech API</span>
+    </div>
+  </footer>
+
+  <!-- ============== ОНБОРДИНГ ============== -->
+  <div class="modal-backdrop" id="onboarding" hidden>
+    <div class="modal onboarding-modal" role="dialog" aria-modal="true" aria-labelledby="onbTitle">
+      <div class="onb-progress">
+        <span class="onb-dot is-active"></span>
+        <span class="onb-dot"></span>
+        <span class="onb-dot"></span>
+        <span class="onb-dot"></span>
+        <span class="onb-dot"></span>
+      </div>
+      <h2 id="onbTitle">Добро пожаловать в ETT!</h2>
+
+      <div class="onb-step is-active" data-onb-step="1">
+        <div class="onb-icon">🎓</div>
+        <h3>Шаг 1. Карточки-перевёртыши</h3>
+        <p>Главная страница показывает 12 системных папок с английскими словами. Кликните по карточке — она перевернётся и покажет английское слово с примером употребления.</p>
+        <p class="muted">Так работает принцип активного вспоминания: мозг сначала пытается вспомнить перевод, и лишь потом проверяет себя.</p>
+      </div>
+
+      <div class="onb-step" data-onb-step="2" hidden>
+        <div class="onb-icon">🔊</div>
+        <h3>Шаг 2. Озвучка и режим повторения</h3>
+        <p>В режиме повторения есть кнопка 🔊 — браузер произнесёт английское слово вслух через Web Speech API. Так работает зрительно-слуховое двойное кодирование.</p>
+        <p>Запустите повторение кнопкой «🎓 Повторение» вверху или «Повторить группу» в заголовке секции.</p>
+      </div>
+
+      <div class="onb-step" data-onb-step="3" hidden>
+        <div class="onb-icon">📥</div>
+        <h3>Шаг 3. Импорт словаря</h3>
+        <p>Кнопка «📥 Импорт» позволяет загрузить реальные словари SMARTool (A1–B2) или простой CSV/TXT. Поддерживается пять режимов раскладки по группам.</p>
+      </div>
+
+      <div class="onb-step" data-onb-step="4" hidden>
+        <div class="onb-icon">👁️</div>
+        <h3>Шаг 4. Режим для слабовидящих</h3>
+        <p>Кнопка 👁️ вверху или в левом меню включает контрастную тему с увеличенным шрифтом и отключёнными анимациями.</p>
+      </div>
+
+      <div class="onb-step" data-onb-step="5" hidden>
+        <div class="onb-icon">📲</div>
+        <h3>Шаг 5. Установка на телефон</h3>
+        <p>ETT — это PWA (прогрессивное веб-приложение). На телефоне откройте меню браузера и нажмите «Установить приложение» или «Добавить на главный экран».</p>
+        <p class="muted">После установки ETT работает как обычное приложение: иконка на рабочем столе, запуск без адресной строки, работа офлайн.</p>
+      </div>
+
+      <div class="modal-actions onb-actions">
+        <button type="button" class="btn btn-ghost" id="onbSkip">Пропустить</button>
+        <span class="onb-spacer"></span>
+        <button type="button" class="btn btn-ghost" id="onbPrev" disabled>← Назад</button>
+        <button type="button" class="btn btn-primary" id="onbNext">Дальше →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== МОДАЛКА: ВЫБОР ТЕМ ДЛЯ ПОВТОРЕНИЯ ============== -->
+  <div class="modal-backdrop" id="studyThemesModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="studyThemesTitle">
+      <button class="modal-close" data-close>✕</button>
+      <h2 id="studyThemesTitle">🎓 Повторение по темам</h2>
+      <p class="muted">Отметьте папки, которые хотите повторить. Слова из всех выбранных папок будут перемешаны.</p>
+      <div class="themes-grid" id="themesGrid"></div>
+      <div class="themes-actions">
+        <button type="button" class="btn btn-ghost" id="themesSelectAll">✓ Выбрать все</button>
+        <button type="button" class="btn btn-ghost" id="themesClear">Очистить</button>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close>Отмена</button>
+        <button type="button" class="btn btn-primary" id="themesStart">Начать повторение</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== МОДАЛКА: ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ СЛОВА ============== -->
+  <div class="modal-backdrop" id="wordModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="wordModalTitle">
+      <button class="modal-close" data-close>✕</button>
+      <h2 id="wordModalTitle">Добавить слово</h2>
+      <form id="wordForm" autocomplete="off">
+        <div class="form-grid">
+          <label class="field">
+            <span>Английское слово</span>
+            <input type="text" id="fWord" required maxlength="80" pattern="^[A-Za-z\s\-'’]+$" title="Только английские буквы, пробел, дефис и апостроф">
+          </label>
+          <label class="field">
+            <span>Перевод (русский)</span>
+            <input type="text" id="fTranslation" required maxlength="80">
+          </label>
+          <label class="field field-wide">
+            <span>Пример употребления</span>
+            <input type="text" id="fExample" placeholder="She bought a yellow banana." maxlength="200">
+          </label>
+          <label class="field">
+            <span>Папка</span>
+            <select id="fFolder"></select>
+          </label>
+        </div>
+
+        <div class="img-block">
+          <span class="img-block-title">Картинка</span>
+          <div class="img-tabs">
+            <button type="button" class="img-tab is-active" data-img-tab="unsplash">Поиск Unsplash</button>
+            <button type="button" class="img-tab" data-img-tab="url">Прямая ссылка</button>
+          </div>
+          <div class="img-pane" data-img-pane="unsplash">
+            <div class="unsplash-row">
+              <input type="text" id="unsplashQuery" placeholder="Введите запрос, например: apple" maxlength="50">
+              <button type="button" id="btnUnsplashSearch">🔍 Найти</button>
+            </div>
+            <div class="unsplash-results" id="unsplashResults">
+              <span class="muted">Здесь появятся 3 превью</span>
+            </div>
+          </div>
+          <div class="img-pane" data-img-pane="url" hidden>
+            <div class="unsplash-row">
+              <input type="url" id="imgUrl" placeholder="https://images.unsplash.com/…" maxlength="500">
+              <button type="button" id="btnImgPreview">Превью</button>
+            </div>
+            <div class="img-preview" id="imgPreview"></div>
+          </div>
+        </div>
+
+        <input type="hidden" id="fImgUrl" value="">
+        <input type="hidden" id="fId" value="">
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" data-close>Отмена</button>
+          <button type="submit" class="btn btn-primary">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============== МОДАЛКА: ПЕРЕНОС СЛОВА ============== -->
+  <div class="modal-backdrop" id="moveModal" hidden>
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="moveModalTitle">
+      <button class="modal-close" data-close>✕</button>
+      <h2 id="moveModalTitle">Переместить / копировать слово</h2>
+      <p class="muted" id="moveWordInfo"></p>
+      <div class="move-list" id="moveList"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close>Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== МОДАЛКА: ИМПОРТ СЛОВАРЯ ============== -->
+  <div class="modal-backdrop" id="importModal" hidden>
+    <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="importModalTitle">
+      <button class="modal-close" data-close>✕</button>
+      <h2 id="importModalTitle">📥 Импорт реального словаря</h2>
+      <div class="import-grid">
+        <label class="field">
+          <span>Режим раскладки по группам</span>
+          <select id="importMode">
+            <option value="auto">🤖 Авто — в системные папки по теме</option>
+            <option value="level_topic">По уровням и темам (A1 · Еда)</option>
+            <option value="level">Только по уровням (🎓 A1, A2, B1, B2)</option>
+            <option value="topic">Только по темам (📚 Еда, Животные…)</option>
+            <option value="alpha">По алфавиту (🔤 A, B, C…)</option>
+            <option value="one">Все в одну папку</option>
+          </select>
+        </label>
+      </div>
+      <div class="import-sources">
+        <div class="import-source">
+          <span class="import-source-title">Загрузить файл (.csv / .txt / .json)</span>
+          <input type="file" id="importFile" accept=".csv,.txt,.json,text/csv,text/plain,application/json">
+        </div>
+        <div class="import-source">
+          <span class="import-source-title">Или импортировать по ссылке</span>
+          <div class="unsplash-row">
+            <input type="url" id="importUrl" placeholder="https://raw.githubusercontent.com/smartool/data-rus-eng/main/SMARTool_data_A1.csv" maxlength="500">
+            <button type="button" id="btnImportUrl">📥 Загрузить</button>
+          </div>
+        </div>
+      </div>
+      <div class="import-status" id="importStatus" hidden></div>
+
+      <div class="import-actions-row">
+        <button type="button" class="btn btn-primary" id="btnAutoImages">🔍 Найти картинки для всех слов</button>
+        <span class="muted">Подбирает картинки через Unsplash по английским словам</span>
+      </div>
+      <details class="import-help">
+        <summary>Источники словарей для справки</summary>
+        <ul>
+          <li>SMARTool (CC-BY 4.0): <a href="https://github.com/smartool/data-rus-eng" target="_blank" rel="noopener">github.com/smartool/data-rus-eng</a>
+            <ul>
+              <li><code>https://raw.githubusercontent.com/smartool/data-rus-eng/main/SMARTool_data_A1.csv</code></li>
+              <li><code>https://raw.githubusercontent.com/smartool/data-rus-eng/main/SMARTool_data_A2.csv</code></li>
+              <li><code>https://raw.githubusercontent.com/smartool/data-rus-eng/main/SMARTool_data_B1.csv</code></li>
+              <li><code>https://raw.githubusercontent.com/smartool/data-rus-eng/main/SMARTool_data_B2.csv</code></li>
+            </ul>
+          </li>
+          <li>Большой англо-русский словарь Mueller: <a href="https://mueller-dict.sourceforge.net/" target="_blank" rel="noopener">mueller-dict.sourceforge.net</a></li>
+        </ul>
+        <p class="muted">Поддерживаемые форматы: CSV словаря SMARTool (распознаётся по заголовкам колонок), простой формат «слово, перевод[, пример]» (разделители: запятая, таб, « - », «;») и JSON-массив.</p>
+      </details>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-close>Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== МОДАЛКА: О ПРОЕКТЕ ============== -->
+  <div class="modal-backdrop" id="aboutModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+      <button class="modal-close" data-close>✕</button>
+      <h2 id="aboutTitle">ℹ️ О проекте</h2>
+      <div class="about-body">
+        <p><strong>English Today and Tomorrow</strong> (ETT) — бесплатное веб-приложение для изучения английской лексики методом визуальных ассоциаций.</p>
+        <p>Слоган: <em>«Учи сегодня — говори завтра»</em>.</p>
+        <p>В основе приложения лежат три принципа памяти: двойное кодирование Пайвио (слово + картинка), активное вспоминание (карточки-перевёртыши) и интервальное повторение (режим самопроверки по группам).</p>
+        <p>Приложение полностью работает в браузере: <strong>без бэкенда, без библиотек, без регистрации</strong>. Все данные хранятся локально через LocalStorage. Внешний запрос — только к API Unsplash для подбора картинок.</p>
+        <ul>
+          <li>12 системных папок × 12 слов = 144 единицы лексики в комплекте.</li>
+          <li>Создавайте свои папки и слова, редактируйте существующие.</li>
+          <li>Импортируйте реальные словари SMARTool (A1–B2) и Mueller.</li>
+          <li>Режим повторения с прогресс-баром и статистикой.</li>
+          <li>Озвучка английских слов через Web Speech API.</li>
+          <li>Тёмная тема и режим для слабовидящих.</li>
+          <li>PWA: устанавливается на телефон, работает офлайн.</li>
+          <li>Левое меню быстрой навигации и горячие клавиши.</li>
+        </ul>
+        <p class="muted">Индивидуальный итоговый проект ученика 9 класса. 2026 г.</p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" data-close>Понятно</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== ОВЕРЛЕЙ РЕЖИМА ПОВТОРЕНИЯ ============== -->
+  <div class="study-overlay" id="studyOverlay" hidden>
+    <div class="study-bar">
+      <div class="study-progress-wrap">
+        <div class="study-progress" id="studyProgress">0 / 0</div>
+        <div class="study-progress-bar">
+          <div class="study-progress-fill" id="studyProgressFill"></div>
+        </div>
+      </div>
+      <div class="study-controls-top">
+        <button class="btn btn-ghost" id="btnStudySpeak" title="Озвучить">🔊</button>
+        <button class="btn btn-ghost" id="btnToggleDir" title="Переключить направление">RU → EN</button>
+        <button class="btn btn-ghost" id="btnCloseStudy" title="Закрыть режим">✕ Закрыть</button>
+      </div>
+    </div>
+    <div class="study-stage" id="studyStage"></div>
+    <div class="study-actions" id="studyActions">
+      <button class="btn btn-success" id="btnKnow">✔ Знаю</button>
+      <button class="btn btn-danger" id="btnDontKnow">✖ Не знаю</button>
+      <button class="btn btn-primary" id="btnNext" disabled>Дальше →</button>
+    </div>
+    <div class="study-results" id="studyResults" hidden>
+      <h2>Тема пройдена! 🎉</h2>
+      <div class="results-grid" id="resultsGrid"></div>
+      <div class="results-buttons">
+        <button class="btn btn-primary" id="btnRestartStudy">↻ Ещё раз</button>
+        <button class="btn btn-ghost" id="btnExitStudy">✕ Выйти</button>
+      </div>
+    </div>
+    <div class="study-hint">Пробел — перевернуть · S — озвучить · → — следующее · Esc — закрыть</div>
+  </div>
+
+  <!-- ============== МОДАЛКА: НАСТРОЙКИ ОФОРМЛЕНИЯ ============== -->
+  <div class="modal-backdrop" id="settingsModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <button class="modal-close" data-close>✕</button>
+      <h2 id="settingsTitle">⚙️ Настройки оформления</h2>
+
+      <div class="settings-section">
+        <div class="settings-label">Цветовая тема</div>
+        <div class="theme-grid">
+          <button class="theme-option is-active" data-theme="" data-name="Светлая">
+            <div class="to-preview light-prev"></div>
+            <span>Светлая</span>
+          </button>
+          <button class="theme-option" data-theme="dark" data-name="Тёмная">
+            <div class="to-preview dark-prev"></div>
+            <span>Тёмная</span>
+          </button>
+          <button class="theme-option" data-theme="a11y" data-name="Контрастная">
+            <div class="to-preview a11y-prev"></div>
+            <span>Контрастная</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Готовые палитры</div>
+        <div class="palette-grid">
+          <button class="palette-option is-active" data-palette="ocean" data-name="Океан">
+            <div class="pal-preview" style="background:linear-gradient(135deg,#0284c7,#0f172a)"></div>
+            <span>🌊 Океан</span>
+          </button>
+          <button class="palette-option" data-palette="forest" data-name="Лес">
+            <div class="pal-preview" style="background:linear-gradient(135deg,#16a34a,#14532d)"></div>
+            <span>🌲 Лес</span>
+          </button>
+          <button class="palette-option" data-palette="sunset" data-name="Закат">
+            <div class="pal-preview" style="background:linear-gradient(135deg,#ea580c,#db2777)"></div>
+            <span>🌅 Закат</span>
+          </button>
+          <button class="palette-option" data-palette="lavender" data-name="Лаванда">
+            <div class="pal-preview" style="background:linear-gradient(135deg,#7c3aed,#c026d3)"></div>
+            <span>💜 Лаванда</span>
+          </button>
+          <button class="palette-option" data-palette="cherry" data-name="Вишня">
+            <div class="pal-preview" style="background:linear-gradient(135deg,#dc2626,#7f1d1d)"></div>
+            <span>🍒 Вишня</span>
+          </button>
+          <button class="palette-option" data-palette="mint" data-name="Мята">
+            <div class="pal-preview" style="background:linear-gradient(135deg,#0d9488,#134e4a)"></div>
+            <span>🍃 Мята</span>
+          </button>
+          <button class="palette-option" data-palette="gold" data-name="Золото">
+            <div class="pal-preview" style="background:linear-gradient(135deg,#ca8a04,#713f12)"></div>
+            <span>🏆 Золото</span>
+          </button>
+          <button class="palette-option" data-palette="mono" data-name="Монохром">
+            <div class="pal-preview" style="background:linear-gradient(135deg,#475569,#0f172a)"></div>
+            <span>⚫ Монохром</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Акцентный цвет</div>
+        <div class="accent-grid">
+          <button class="accent-option is-active" data-accent="#0284c7" style="background:#0284c7"></button>
+          <button class="accent-option" data-accent="#7c3aed" style="background:#7c3aed"></button>
+          <button class="accent-option" data-accent="#db2777" style="background:#db2777"></button>
+          <button class="accent-option" data-accent="#dc2626" style="background:#dc2626"></button>
+          <button class="accent-option" data-accent="#ea580c" style="background:#ea580c"></button>
+          <button class="accent-option" data-accent="#16a34a" style="background:#16a34a"></button>
+          <button class="accent-option" data-accent="#0d9488" style="background:#0d9488"></button>
+          <button class="accent-option" data-accent="#1e293b" style="background:#1e293b"></button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Шрифт</div>
+        <div class="font-grid">
+          <button class="font-option is-active" data-font="Inter" style="font-family:Inter,sans-serif">Inter — современный</button>
+          <button class="font-option" data-font="Roboto" style="font-family:Roboto,sans-serif">Roboto — классический</button>
+          <button class="font-option" data-font="Georgia" style="font-family:Georgia,serif">Georgia — серьёзный</button>
+          <button class="font-option" data-font="monospace" style="font-family:monospace">Monospace — код</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-label">Размер шрифта</div>
+        <div class="size-grid">
+          <button class="size-option" data-size="14">Малый</button>
+          <button class="size-option is-active" data-size="16">Средний</button>
+          <button class="size-option" data-size="18">Большой</button>
+          <button class="size-option" data-size="20">Очень большой</button>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="resetSettings">Сбросить</button>
+        <button type="button" class="btn btn-primary" data-close>Готово</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== КОНТЕЙНЕР TOAST-УВЕДОМЛЕНИЙ ============== -->
+  <div class="toasts" id="toasts"></div>
+
+  <script>
+/* ============================================================
+ * data.js — встроенный словарь ETT (English Today and Tomorrow)
+ * 12 системных папок × 12 слов = 144 единицы лексики.
+ * Каждое слово снабжено примером употребления и прямой ссылкой
+ * на изображение с Unsplash (Source API) в формате:
+ *   https://images.unsplash.com/photo-...?auto=format&fit=crop&w=600&q=60
+ * Эти данные при первом запуске копируются в LocalStorage
+ * (ключи "ett_folders" и "ett_words"), после чего все изменения
+ * пользователя сохраняются только локально.
+ * ============================================================ */
+
+// 12 системных (isSystem=true) папок с эмодзи-иконками и мнемоническими стишками
+// rhyme — короткий стишок-запоминалка для всей группы слов
+const SYSTEM_FOLDERS = [
+  { id: 'f1',  name: 'Еда',          icon: '🍎', isSystem: true,
+    rhyme: 'Apple — яблоко, banana — банан,\nBread — хлеб, cheese — сыр, это наш план.\nEgg — яйцо, fish — рыба, meat — мясо,\nMilk — молоко, rice — рис, всё прекрасно!' },
+  { id: 'f2',  name: 'Животные',     icon: '🐾', isSystem: true,
+    rhyme: 'Cat — кошка, dog — собака,\nBear — медведь, bird — птица, however,\nCow — корова, horse — лошадь, в поле,\nLion — лев — царь, при своём произволе!' },
+  { id: 'f3',  name: 'Семья',        icon: '👨‍👩‍👧', isSystem: true,
+    rhyme: 'Mother — мама, father — папа,\nSister — сестра, brother — брат, вот так-то.\nGrandma — бабушка, grandpa — дед,\nUncle — дядя, aunt — тётя, вот и ответ!' },
+  { id: 'f4',  name: 'Школа',        icon: '🏫', isSystem: true,
+    rhyme: 'Pen — ручка, pencil — карандаш,\nBook — книга, bag — рюкзак, вот это класс.\nBoard — доска, desk — парта, lesson — урок,\nMark — оценка, teacher — учитель, будь как урок!' },
+  { id: 'f5',  name: 'Погода',       icon: '🌦️', isSystem: true,
+    rhyme: 'Sun — солнце, rain — дождь,\nSnow — снег, ice — лёд, ну что ты ждёшь?\nWind — ветер, cloud — облако, fog — туман,\nStorm — гроза, cold — холод, не обман!' },
+  { id: 'f6',  name: 'Спорт',        icon: '⚽', isSystem: true,
+    rhyme: 'Ball — мяч, goal — гол, team — команда,\nRun — бежать, jump — прыжок, ну как же странно.\nWin — победить, lose — проиграть,\nScore — счёт, swim — плавать, что сказать!' },
+  { id: 'f7',  name: 'Путешествия',  icon: '✈️', isSystem: true,
+    rhyme: 'Plane — самолёт, train — поезд, ticket — билет,\nMap — карта, hotel — отель, вот мой ответ.\nGuide — гид, tourist — турист, journey — путь,\nSuitcase — чемодан, airport — аэропорт, не позабыть!' },
+  { id: 'f8',  name: 'Эмоции',       icon: '😊', isSystem: true,
+    rhyme: 'Happy — счастливый, sad — грустный,\nAngry — сердитый, calm — спокойный, вестимо.\nTired — уставший, bored — скучный,\nProud — гордый, lonely — одинокий, лучший!' },
+  { id: 'f9',  name: 'Дом',          icon: '🏠', isSystem: true,
+    rhyme: 'Door — дверь, window — окно,\nWall — стена, floor — пол, вот кино.\nRoom — комната, kitchen — кухня, bedroom — спальня,\nTable — стол, chair — стул, lamp — лампа, без изъяна!' },
+  { id: 'f10', name: 'Одежда',       icon: '👕', isSystem: true,
+    rhyme: 'Shirt — рубашка, dress — платье,\nHat — шляпа, coat — пальто, как на параде.\nShoe — ботинок, sock — носок, pants — брюки,\nJacket — куртка, skirt — юбка — всё в нюансы!' },
+  { id: 'f11', name: 'Природа',      icon: '🌳', isSystem: true,
+    rhyme: 'Tree — дерево, flower — цветок,\nGrass — трава, leaf — лист, на лужок.\nRiver — река, lake — озеро, sea — море,\nMountain — гора, forest — лес — простор, не горе!' },
+  { id: 'f12', name: 'Технологии',   icon: '💻', isSystem: true,
+    rhyme: 'Computer — компьютер, phone — телефон,\nInternet — интернет, file — файл, всё he on.\nScreen — экран, keyboard — клавиатура,\nMouse — мышь, password — пароль, как литература!' }
+];
+
+// 144 слова. Сортировка по английскому слову.
+const SYSTEM_WORDS = [
+  // ---- f1: Еда ----
+  { id:'w101', word:'apple',     translation:'яблоко',     example:'I eat a green apple every morning.',           folderId:'f1',  imageUrl:'https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?auto=format&fit=crop&w=600&q=60' },
+  { id:'w102', word:'banana',    translation:'банан',      example:'She bought a yellow banana for the baby.',     folderId:'f1',  imageUrl:'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&w=600&q=60' },
+  { id:'w103', word:'bread',     translation:'хлеб',       example:'Fresh bread smells wonderful.',                folderId:'f1',  imageUrl:'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=600&q=60' },
+  { id:'w104', word:'cheese',    translation:'сыр',       example:'Italian cheese is famous all over the world.',folderId:'f1',  imageUrl:'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&w=600&q=60' },
+  { id:'w105', word:'egg',       translation:'яйцо',      example:'He boiled an egg for breakfast.',             folderId:'f1',  imageUrl:'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?auto=format&fit=crop&w=600&q=60' },
+  { id:'w106', word:'fish',      translation:'рыба',      example:'Grilled fish is healthy and tasty.',           folderId:'f1',  imageUrl:'https://images.unsplash.com/photo-1535399831218-d4db9f6f5dba?auto=format&fit=crop&w=600&q=60' },
+  { id:'w107', word:'meat',      translation:'мясо',      example:'My grandfather prefers roasted meat.',         folderId:'f1',  imageUrl:'https://images.unsplash.com/photo-1603048719574-7f0602a0c4b6?auto=format&fit=crop&w=600&q=60' },
+  { id:'w108', word:'milk',      translation:'молоко',    example:'Cold milk goes well with chocolate cookies.',   folderId:'f1',  imageUrl:'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=600&q=60' },
+  { id:'w109', word:'rice',     translation:'рис',       example:'Rice is a basic food in many countries.',       folderId:'f1',  imageUrl:'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=60' },
+  { id:'w110', word:'salt',     translation:'соль',      example:'Add a pinch of salt to the soup.',              folderId:'f1',  imageUrl:'https://images.unsplash.com/photo-1518110925495-b37653d22271?auto=format&fit=crop&w=600&q=60' },
+  { id:'w111', word:'soup',     translation:'суп',       example:'Tomato soup is my favourite in winter.',        folderId:'f1',  imageUrl:'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=600&q=60' },
+  { id:'w112', word:'water',    translation:'вода',      example:'Drink water before you feel thirsty.',          folderId:'f1',  imageUrl:'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=600&q=60' },
+
+  // ---- f2: Животные ----
+  { id:'w201', word:'bear',     translation:'медведь',   example:'A brown bear caught a salmon in the river.',    folderId:'f2',  imageUrl:'https://images.unsplash.com/photo-1589656966835-1356d5f5c3f9?auto=format&fit=crop&w=600&q=60' },
+  { id:'w202', word:'bird',     translation:'птица',     example:'A small bird sang on the windowsill.',          folderId:'f2',  imageUrl:'https://images.unsplash.com/photo-1444464666168-49d633b86797?auto=format&fit=crop&w=600&q=60' },
+  { id:'w203', word:'cat',      translation:'кошка',     example:'The cat is sleeping on the warm sofa.',          folderId:'f2',  imageUrl:'https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=600&q=60' },
+  { id:'w204', word:'cow',      translation:'корова',     example:'The cow gives us fresh milk every day.',        folderId:'f2',  imageUrl:'https://images.unsplash.com/photo-1500595046743-c62e5c0e4f6b?auto=format&fit=crop&w=600&q=60' },
+  { id:'w205', word:'dog',      translation:'собака',    example:'My dog wags its tail when I come home.',         folderId:'f2',  imageUrl:'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=60' },
+  { id:'w206', word:'fish',     translation:'рыба',      example:'A tiny fish swam near the stones.',             folderId:'f2',  imageUrl:'https://images.unsplash.com/photo-1535591273668-578e31182c4f?auto=format&fit=crop&w=600&q=60' },
+  { id:'w207', word:'horse',    translation:'лошадь',    example:'The horse ran quickly across the field.',        folderId:'f2',  imageUrl:'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&w=600&q=60' },
+  { id:'w208', word:'lion',     translation:'лев',       example:'The lion is the king of the savannah.',          folderId:'f2',  imageUrl:'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=600&q=60' },
+  { id:'w209', word:'mouse',    translation:'мышь',      example:'A grey mouse hid behind the cupboard.',          folderId:'f2',  imageUrl:'https://images.unsplash.com/photo-1425082806426-8606a46fc959?auto=format&fit=crop&w=600&q=60' },
+  { id:'w210', word:'pig',      translation:'свинья',     example:'A pink pig rolled in the mud happily.',         folderId:'f2',  imageUrl:'https://images.unsplash.com/photo-1555431189-8f8d69d2a4f3?auto=format&fit=crop&w=600&q=60' },
+  { id:'w211', word:'rabbit',   translation:'кролик',    example:'A white rabbit jumped into the garden.',         folderId:'f2',  imageUrl:'https://images.unsplash.com/photo-1535241749838-299277b6305f?auto=format&fit=crop&w=600&q=60' },
+  { id:'w212', word:'wolf',     translation:'волк',      example:'The wolf howled at the full moon.',              folderId:'f2',  imageUrl:'https://images.unsplash.com/photo-1564284247427-9c0a70c2f4d1?auto=format&fit=crop&w=600&q=60' },
+
+  // ---- f3: Семья ----
+  { id:'w301', word:'aunt',      translation:'тётя',      example:'My aunt bakes the best apple pie.',             folderId:'f3',  imageUrl:'https://images.unsplash.com/photo-1607746882042-944635dfe0e9?auto=format&fit=crop&w=600&q=60' },
+  { id:'w302', word:'brother',   translation:'брат',      example:'My brother is two years older than me.',         folderId:'f3',  imageUrl:'https://images.unsplash.com/photo-1571212515416-fef01f1a8c12?auto=format&fit=crop&w=600&q=60' },
+  { id:'w303', word:'cousin',    translation:'кузен',     example:'My cousin lives in another city.',               folderId:'f3',  imageUrl:'https://images.unsplash.com/photo-1542037104857-ffbb0b9155fb?auto=format&fit=crop&w=600&q=60' },
+  { id:'w304', word:'daughter',  translation:'дочь',      example:'Their daughter is only five years old.',         folderId:'f3',  imageUrl:'https://images.unsplash.com/photo-1518717207596-dda6241a0cd4?auto=format&fit=crop&w=600&q=60' },
+  { id:'w305', word:'father',    translation:'отец',      example:'My father drives me to school every morning.',   folderId:'f3',  imageUrl:'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=600&q=60' },
+  { id:'w306', word:'grandfather',translation:'дедушка',  example:'My grandfather tells stories about his youth.',  folderId:'f3',  imageUrl:'https://images.unsplash.com/photo-1568924786129-c2c4c8f6d569?auto=format&fit=crop&w=600&q=60' },
+  { id:'w307', word:'grandmother',translation:'бабушка',  example:'Grandmother knits warm socks for winter.',        folderId:'f3',  imageUrl:'https://images.unsplash.com/photo-1581579438747-104c53e7cb71?auto=format&fit=crop&w=600&q=60' },
+  { id:'w308', word:'mother',    translation:'мать',      example:'My mother cooks delicious borscht.',              folderId:'f3',  imageUrl:'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=600&q=60' },
+  { id:'w309', word:'parents',   translation:'родители',  example:'My parents help me with my homework.',           folderId:'f3',  imageUrl:'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&w=600&q=60' },
+  { id:'w310', word:'sister',    translation:'сестра',    example:'My little sister loves drawing cats.',           folderId:'f3',  imageUrl:'https://images.unsplash.com/photo-1517845738-6d9d18f5c95b?auto=format&fit=crop&w=600&q=60' },
+  { id:'w311', word:'son',       translation:'сын',       example:'Their son won a school chess tournament.',        folderId:'f3',  imageUrl:'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=600&q=60' },
+  { id:'w312', word:'uncle',     translation:'дядя',      example:'My uncle works as a builder in Moscow.',          folderId:'f3',  imageUrl:'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=60' },
+
+  // ---- f4: Школа ----
+  { id:'w401', word:'bag',       translation:'рюкзак',    example:'My school bag is heavy on Mondays.',             folderId:'f4',  imageUrl:'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=600&q=60' },
+  { id:'w402', word:'board',     translation:'доска',     example:'The teacher wrote the task on the board.',       folderId:'f4',  imageUrl:'https://images.unsplash.com/photo-1497486751825-1233686d5d80?auto=format&fit=crop&w=600&q=60' },
+  { id:'w403', word:'book',      translation:'книга',     example:'This book is about ancient Rome.',                folderId:'f4',  imageUrl:'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=600&q=60' },
+  { id:'w404', word:'class',     translation:'класс',     example:'Our class is friendly and helpful.',             folderId:'f4',  imageUrl:'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=600&q=60' },
+  { id:'w405', word:'desk',      translation:'парта',     example:'My desk is near the window.',                     folderId:'f4',  imageUrl:'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=600&q=60' },
+  { id:'w406', word:'eraser',    translation:'ластик',    example:'I need an eraser to fix my mistake.',             folderId:'f4',  imageUrl:'https://images.unsplash.com/photo-1456081445454-9e5b0e7f3f7e?auto=format&fit=crop&w=600&q=60' },
+  { id:'w407', word:'lesson',    translation:'урок',      example:'The English lesson starts at nine.',             folderId:'f4',  imageUrl:'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=600&q=60' },
+  { id:'w408', word:'mark',      translation:'оценка',    example:'I got the highest mark in maths.',               folderId:'f4',  imageUrl:'https://images.unsplash.com/photo-1606326608606-aa0b429b4450?auto=format&fit=crop&w=600&q=60' },
+  { id:'w409', word:'pen',       translation:'ручка',     example:'My pen ran out of ink again.',                   folderId:'f4',  imageUrl:'https://images.unsplash.com/photo-1583485088034-697c5d1b65e1?auto=format&fit=crop&w=600&q=60' },
+  { id:'w410', word:'pencil',    translation:'карандаш',  example:'A sharp pencil is best for drawing.',           folderId:'f4',  imageUrl:'https://images.unsplash.com/photo-1568871391783-83f2a4f4d6a3?auto=format&fit=crop&w=600&q=60' },
+  { id:'w411', word:'ruler',     translation:'линейка',   example:'Use a ruler to draw a straight line.',           folderId:'f4',  imageUrl:'https://images.unsplash.com/photo-1532619675605-1ede6c2fed98?auto=format&fit=crop&w=600&q=60' },
+  { id:'w412', word:'teacher',   translation:'учитель',  example:'Our teacher explains grammar clearly.',          folderId:'f4',  imageUrl:'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=600&q=60' },
+
+  // ---- f5: Погода ----
+  { id:'w501', word:'cloud',     translation:'облако',    example:'A white cloud floated across the sky.',          folderId:'f5',  imageUrl:'https://images.unsplash.com/photo-1534088568595-a066f4102da4?auto=format&fit=crop&w=600&q=60' },
+  { id:'w502', word:'cold',      translation:'холод',     example:'The cold winter wind froze my fingers.',         folderId:'f5',  imageUrl:'https://images.unsplash.com/photo-1551582045-6ec9c11d86d7?auto=format&fit=crop&w=600&q=60' },
+  { id:'w503', word:'fog',       translation:'туман',     example:'Thick fog covered the city in the morning.',      folderId:'f5',  imageUrl:'https://images.unsplash.com/photo-1487621167305-5d248087c724?auto=format&fit=crop&w=600&q=60' },
+  { id:'w504', word:'heat',      translation:'жара',      example:'The summer heat was unbearable in July.',         folderId:'f5',  imageUrl:'https://images.unsplash.com/photo-1504370805625-d32af1c08f0f?auto=format&fit=crop&w=600&q=60' },
+  { id:'w505', word:'hot',       translation:'жаркий',    example:'Today is too hot for a long walk.',               folderId:'f5',  imageUrl:'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=60' },
+  { id:'w506', word:'ice',       translation:'лёд',       example:'Black ice made the road dangerous.',              folderId:'f5',  imageUrl:'https://images.unsplash.com/photo-1517817430-007d4d9ce14f?auto=format&fit=crop&w=600&q=60' },
+  { id:'w507', word:'rain',      translation:'дождь',     example:'The rain started suddenly in the afternoon.',     folderId:'f5',  imageUrl:'https://images.unsplash.com/photo-1519692933481-e162a57d6721?auto=format&fit=crop&w=600&q=60' },
+  { id:'w508', word:'snow',      translation:'снег',      example:'The first snow fell in early November.',         folderId:'f5',  imageUrl:'https://images.unsplash.com/photo-1486944670666-66d1fdd81392?auto=format&fit=crop&w=600&q=60' },
+  { id:'w509', word:'storm',     translation:'гроза',     example:'A summer storm cut the electricity.',            folderId:'f5',  imageUrl:'https://images.unsplash.com/photo-1428592953211-0774fd0e2a58?auto=format&fit=crop&w=600&q=60' },
+  { id:'w510', word:'sun',       translation:'солнце',    example:'The warm sun came out after the rain.',           folderId:'f5',  imageUrl:'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=60' },
+  { id:'w511', word:'warm',      translation:'тёплый',    example:'A warm sweater is great for autumn.',            folderId:'f5',  imageUrl:'https://images.unsplash.com/photo-1542228262-3d663b306a53?auto=format&fit=crop&w=600&q=60' },
+  { id:'w512', word:'wind',      translation:'ветер',     example:'A strong wind bent the young trees.',             folderId:'f5',  imageUrl:'https://images.unsplash.com/photo-1527482797697-8795b05a13b4?auto=format&fit=crop&w=600&q=60' },
+
+  // ---- f6: Спорт ----
+  { id:'w601', word:'ball',      translation:'мяч',       example:'He kicked the ball into the goal.',              folderId:'f6',  imageUrl:'https://images.unsplash.com/photo-1614632537190-23e4146777db?auto=format&fit=crop&w=600&q=60' },
+  { id:'w602', word:'game',      translation:'игра',      example:'Yesterday we watched a fantastic game.',          folderId:'f6',  imageUrl:'https://images.unsplash.com/photo-1543326727-cf6c3903f9b0?auto=format&fit=crop&w=600&q=60' },
+  { id:'w603', word:'goal',      translation:'гол',       example:'Our team scored a goal in the last minute.',     folderId:'f6',  imageUrl:'https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&w=600&q=60' },
+  { id:'w604', word:'jump',      translation:'прыжок',    example:'Her jump was the highest in the contest.',       folderId:'f6',  imageUrl:'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=600&q=60' },
+  { id:'w605', word:'kick',      translation:'удар',      example:'A powerful kick broke the goalkeeper.',          folderId:'f6',  imageUrl:'https://images.unsplash.com/photo-1579954115545-a44d99c7b7e6?auto=format&fit=crop&w=600&q=60' },
+  { id:'w606', word:'lose',      translation:'проиграть', example:'Dont be sad if you lose once.',                 folderId:'f6',  imageUrl:'https://images.unsplash.com/photo-1521412644187-c49fa049e84d?auto=format&fit=crop&w=600&q=60' },
+  { id:'w607', word:'match',     translation:'матч',      example:'The final match ended in a draw.',               folderId:'f6',  imageUrl:'https://images.unsplash.com/photo-1522778119026-d6cfa2c5f1f6?auto=format&fit=crop&w=600&q=60' },
+  { id:'w608', word:'run',       translation:'бегать',    example:'I run in the park every morning.',               folderId:'f6',  imageUrl:'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=600&q=60' },
+  { id:'w609', word:'score',     translation:'счёт',      example:'The score was three to one.',                     folderId:'f6',  imageUrl:'https://images.unsplash.com/photo-1518605370434-0100f3d9a7f3?auto=format&fit=crop&w=600&q=60' },
+  { id:'w610', word:'swim',      translation:'плавать',   example:'Children love to swim in the sea.',               folderId:'f6',  imageUrl:'https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?auto=format&fit=crop&w=600&q=60' },
+  { id:'w611', word:'team',      translation:'команда',   example:'Our team trained hard all winter.',              folderId:'f6',  imageUrl:'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=600&q=60' },
+  { id:'w612', word:'win',       translation:'победить',  example:'We hope our class will win the relay.',          folderId:'f6',  imageUrl:'https://images.unsplash.com/photo-1567531468023-4da6c6d4c6f6?auto=format&fit=crop&w=600&q=60' },
+
+  // ---- f7: Путешествия ----
+  { id:'w701', word:'airport',   translation:'аэропорт',  example:'We arrived at the airport two hours early.',    folderId:'f7',  imageUrl:'https://images.unsplash.com/photo-1436491865332-7a61a109cc7c?auto=format&fit=crop&w=600&q=60' },
+  { id:'w702', word:'guide',     translation:'гид',       example:'Our guide spoke three languages.',                folderId:'f7',  imageUrl:'https://images.unsplash.com/photo-1583416750470-965b2707b355?auto=format&fit=crop&w=600&q=60' },
+  { id:'w703', word:'hotel',     translation:'отель',     example:'The hotel had a rooftop pool.',                   folderId:'f7',  imageUrl:'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=60' },
+  { id:'w704', word:'journey',   translation:'путешествие',example:'The journey took us twelve hours.',              folderId:'f7',  imageUrl:'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=600&q=60' },
+  { id:'w705', word:'map',       translation:'карта',    example:'Open the map and find the red dot.',             folderId:'f7',  imageUrl:'https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=600&q=60' },
+  { id:'w706', word:'passport',  translation:'паспорт',   example:'Dont forget your passport at home.',             folderId:'f7',  imageUrl:'https://images.unsplash.com/photo-1452860606245-08befc0ff44b?auto=format&fit=crop&w=600&q=60' },
+  { id:'w707', word:'plane',     translation:'самолёт',   example:'Our plane took off exactly on time.',             folderId:'f7',  imageUrl:'https://images.unsplash.com/photo-1556388158-158ea5ccacbd?auto=format&fit=crop&w=600&q=60' },
+  { id:'w708', word:'suitcase',  translation:'чемодан',   example:'My suitcase was too heavy to lift.',              folderId:'f7',  imageUrl:'https://images.unsplash.com/photo-1581558438927-9b39bb95eb4d?auto=format&fit=crop&w=600&q=60' },
+  { id:'w709', word:'ticket',    translation:'билет',     example:'Show your ticket at the entrance.',              folderId:'f7',  imageUrl:'https://images.unsplash.com/photo-1502810190503-8303352d0dd1?auto=format&fit=crop&w=600&q=60' },
+  { id:'w710', word:'tourist',   translation:'турист',    example:'A group of tourists stopped near the museum.',   folderId:'f7',  imageUrl:'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=600&q=60' },
+  { id:'w711', word:'train',     translation:'поезд',     example:'The fast train arrives at noon.',                 folderId:'f7',  imageUrl:'https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=600&q=60' },
+  { id:'w712', word:'trip',      translation:'поездка',   example:'Our school trip was unforgettable.',              folderId:'f7',  imageUrl:'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=600&q=60' },
+
+  // ---- f8: Эмоции ----
+  { id:'w801', word:'afraid',    translation:'испуганный',example:'The child was afraid of the dark.',              folderId:'f8',  imageUrl:'https://images.unsplash.com/photo-1605000797494-95a51c5269ae?auto=format&fit=crop&w=600&q=60' },
+  { id:'w802', word:'angry',     translation:'сердитый',  example:'He was angry because the bus was late.',         folderId:'f8',  imageUrl:'https://images.unsplash.com/photo-1606115915090-becc0c9f1f83?auto=format&fit=crop&w=600&q=60' },
+  { id:'w803', word:'bored',     translation:'скучающий', example:'The students were bored by the long lecture.',    folderId:'f8',  imageUrl:'https://images.unsplash.com/photo-1593105544559-ec2c8c55f6a0?auto=format&fit=crop&w=600&q=60' },
+  { id:'w804', word:'calm',      translation:'спокойный', example:'She stayed calm in a difficult situation.',       folderId:'f8',  imageUrl:'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?auto=format&fit=crop&w=600&q=60' },
+  { id:'w805', word:'excited',   translation:'взволнованный',example:'The kids were excited about the holiday.',    folderId:'f8',  imageUrl:'https://images.unsplash.com/photo-1492684223066-81328ee5cc64?auto=format&fit=crop&w=600&q=60' },
+  { id:'w806', word:'happy',     translation:'счастливый',example:'I am happy when my family is together.',         folderId:'f8',  imageUrl:'https://images.unsplash.com/photo-1525134479668-1bee5c7c6845?auto=format&fit=crop&w=600&q=60' },
+  { id:'w807', word:'jealous',   translation:'ревнивый',  example:'He felt jealous of his friends success.',        folderId:'f8',  imageUrl:'https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?auto=format&fit=crop&w=600&q=60' },
+  { id:'w808', word:'lonely',    translation:'одинокий',  example:'The old man felt lonely without his dog.',        folderId:'f8',  imageUrl:'https://images.unsplash.com/photo-1517845738-6d9d18f5c95b?auto=format&fit=crop&w=600&q=60' },
+  { id:'w809', word:'proud',     translation:'гордый',    example:'I am proud of my progress in English.',          folderId:'f8',  imageUrl:'https://images.unsplash.com/photo-1543352634-99a5d50ae78e?auto=format&fit=crop&w=600&q=60' },
+  { id:'w810', word:'sad',       translation:'грустный',  example:'She felt sad when her friend moved away.',       folderId:'f8',  imageUrl:'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=600&q=60' },
+  { id:'w811', word:'surprised', translation:'удивлённый',example:'I was surprised by the news.',                    folderId:'f8',  imageUrl:'https://images.unsplash.com/photo-1543353071-873f17a7a088?auto=format&fit=crop&w=600&q=60' },
+  { id:'w812', word:'tired',     translation:'уставший',  example:'After the hike I felt very tired.',               folderId:'f8',  imageUrl:'https://images.unsplash.com/photo-1517242810446-cc8951b2be40?auto=format&fit=crop&w=600&q=60' },
+
+  // ---- f9: Дом ----
+  { id:'w901', word:'bathroom',  translation:'ванная',    example:'The bathroom has a big mirror.',                  folderId:'f9',  imageUrl:'https://images.unsplash.com/photo-1584622650111-993a4f7d1e3c?auto=format&fit=crop&w=600&q=60' },
+  { id:'w902', word:'bedroom',   translation:'спальня',    example:'My bedroom walls are light blue.',                folderId:'f9',  imageUrl:'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=600&q=60' },
+  { id:'w903', word:'chair',     translation:'стул',      example:'A wooden chair stood by the table.',             folderId:'f9',  imageUrl:'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=60' },
+  { id:'w904', word:'door',      translation:'дверь',     example:'Please close the door quietly.',                 folderId:'f9',  imageUrl:'https://images.unsplash.com/photo-1543128920-6b7d9c91e8ae?auto=format&fit=crop&w=600&q=60' },
+  { id:'w905', word:'floor',     translation:'пол',      example:'The wooden floor creaked underfoot.',            folderId:'f9',  imageUrl:'https://images.unsplash.com/photo-1554995207-c18c203602cb?auto=format&fit=crop&w=600&q=60' },
+  { id:'w906', word:'kitchen',   translation:'кухня',     example:'Our kitchen is small but cosy.',                  folderId:'f9',  imageUrl:'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=600&q=60' },
+  { id:'w907', word:'lamp',      translation:'лампа',     example:'The reading lamp gave a soft warm light.',       folderId:'f9',  imageUrl:'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=600&q=60' },
+  { id:'w908', word:'roof',      translation:'крыша',     example:'The roof was covered with fresh snow.',           folderId:'f9',  imageUrl:'https://images.unsplash.com/photo-1572122332356-93e4d4f6f7a6?auto=format&fit=crop&w=600&q=60' },
+  { id:'w909', word:'room',      translation:'комната',   example:'My room has a big window facing south.',          folderId:'f9',  imageUrl:'https://images.unsplash.com/photo-1493809842364-78817add7d74?auto=format&fit=crop&w=600&q=60' },
+  { id:'w910', word:'table',     translation:'стол',      example:'We put fresh flowers on the table.',             folderId:'f9',  imageUrl:'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=600&q=60' },
+  { id:'w911', word:'wall',      translation:'стена',     example:'The wall was painted in light green.',            folderId:'f9',  imageUrl:'https://images.unsplash.com/photo-1493809842364-78817add7d74?auto=format&fit=crop&w=600&q=60' },
+  { id:'w912', word:'window',    translation:'окно',      example:'Open the window to let some fresh air in.',      folderId:'f9',  imageUrl:'https://images.unsplash.com/photo-1518895949257-7621c3c2f7e4?auto=format&fit=crop&w=600&q=60' },
+
+  // ---- f10: Одежда ----
+  { id:'wa01', word:'coat',      translation:'пальто',    example:'A warm coat is a must in winter.',                folderId:'f10', imageUrl:'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=600&q=60' },
+  { id:'wa02', word:'dress',     translation:'платье',   example:'Her new dress is bright yellow.',                 folderId:'f10', imageUrl:'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&q=60' },
+  { id:'wa03', word:'glove',     translation:'перчатка',  example:'I lost one glove on the bus.',                    folderId:'f10', imageUrl:'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=600&q=60' },
+  { id:'wa04', word:'hat',       translation:'шляпа',    example:'In summer I always wear a hat.',                  folderId:'f10', imageUrl:'https://images.unsplash.com/photo-1521369909029-2afed882ba98?auto=format&fit=crop&w=600&q=60' },
+  { id:'wa05', word:'jacket',    translation:'куртка',    example:'His leather jacket looked stylish.',              folderId:'f10', imageUrl:'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=600&q=60' },
+  { id:'wa06', word:'pants',     translation:'брюки',    example:'These pants match my new shirt.',                 folderId:'f10', imageUrl:'https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=600&q=60' },
+  { id:'wa07', word:'scarf',     translation:'шарф',     example:'Grandma knitted me a long red scarf.',           folderId:'f10', imageUrl:'https://images.unsplash.com/photo-1520903920243-00d8722a9c46?auto=format&fit=crop&w=600&q=60' },
+  { id:'wa08', word:'shirt',     translation:'рубашка',   example:'My school shirt is white and stiff.',             folderId:'f10', imageUrl:'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=600&q=60' },
+  { id:'wa09', word:'shoe',      translation:'ботинок',  example:'One shoe was hidden under the bed.',              folderId:'f10', imageUrl:'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=60' },
+  { id:'wa10', word:'skirt',     translation:'юбка',     example:'Her denim skirt had embroidery on the pocket.',   folderId:'f10', imageUrl:'https://images.unsplash.com/photo-1583496661160-fb5886a13d76?auto=format&fit=crop&w=600&q=60' },
+  { id:'wa11', word:'sock',      translation:'носок',     example:'I need to buy a new pair of socks.',              folderId:'f10', imageUrl:'https://images.unsplash.com/photo-1582538614876-cab1d6b0f4d4?auto=format&fit=crop&w=600&q=60' },
+  { id:'wa12', word:'sweater',   translation:'свитер',   example:'This wool sweater keeps me very warm.',           folderId:'f10', imageUrl:'https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=600&q=60' },
+
+  // ---- f11: Природа ----
+  { id:'wb01', word:'flower',    translation:'цветок',   example:'A yellow flower grew between the stones.',        folderId:'f11', imageUrl:'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=600&q=60' },
+  { id:'wb02', word:'forest',    translation:'лес',      example:'The forest was quiet and smelled of pine.',       folderId:'f11', imageUrl:'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=60' },
+  { id:'wb03', word:'grass',     translation:'трава',    example:'The fresh grass was wet with dew.',               folderId:'f11', imageUrl:'https://images.unsplash.com/photo-1550744662-8c5c8e4f1f3a?auto=format&fit=crop&w=600&q=60' },
+  { id:'wb04', word:'lake',      translation:'озеро',    example:'The calm lake reflected the mountains.',          folderId:'f11', imageUrl:'https://images.unsplash.com/photo-1500350214245-e5b58c4f9e7a?auto=format&fit=crop&w=600&q=60' },
+  { id:'wb05', word:'leaf',      translation:'лист',     example:'A yellow leaf fell on my book.',                  folderId:'f11', imageUrl:'https://images.unsplash.com/photo-1518495973542-4542c06a5843?auto=format&fit=crop&w=600&q=60' },
+  { id:'wb06', word:'mountain',  translation:'гора',     example:'The snowy mountain rose above the clouds.',       folderId:'f11', imageUrl:'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=60' },
+  { id:'wb07', word:'river',     translation:'река',     example:'The river flows slowly to the sea.',              folderId:'f11', imageUrl:'https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=600&q=60' },
+  { id:'wb08', word:'rock',      translation:'камень',   example:'The cat liked to sit on the warm rock.',          folderId:'f11', imageUrl:'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=60' },
+  { id:'wb09', word:'sand',      translation:'песок',    example:'The warm sand slipped through my fingers.',       folderId:'f11', imageUrl:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=60' },
+  { id:'wb10', word:'sea',       translation:'море',     example:'The Black sea is warm in summer.',                folderId:'f11', imageUrl:'https://images.unsplash.com/photo-1505228395891-9a51e7e86bf6?auto=format&fit=crop&w=600&q=60' },
+  { id:'wb11', word:'sky',       translation:'небо',     example:'The evening sky turned orange and pink.',         folderId:'f11', imageUrl:'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?auto=format&fit=crop&w=600&q=60' },
+  { id:'wb12', word:'tree',      translation:'дерево',   example:'An old tree stood in the middle of the yard.',    folderId:'f11', imageUrl:'https://images.unsplash.com/photo-1518709268805-4e9042af2176?auto=format&fit=crop&w=600&q=600&q=60' },
+
+  // ---- f12: Технологии ----
+  { id:'wc01', word:'app',       translation:'приложение', example:'This app helps me learn new words.',             folderId:'f12', imageUrl:'https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=600&q=60' },
+  { id:'wc02', word:'computer',  translation:'компьютер', example:'My computer is on the desk near the window.',     folderId:'f12', imageUrl:'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=600&q=60' },
+  { id:'wc03', word:'email',     translation:'эл.почта', example:'I sent the homework to the teacher by email.',    folderId:'f12', imageUrl:'https://images.unsplash.com/photo-1596526131083-e8c633c948d0?auto=format&fit=crop&w=600&q=60' },
+  { id:'wc04', word:'file',      translation:'файл',     example:'Save the file under a clear name.',                folderId:'f12', imageUrl:'https://images.unsplash.com/photo-1573164713988-8d6e8e0c9f4b?auto=format&fit=crop&w=600&q=60' },
+  { id:'wc05', word:'internet',  translation:'интернет', example:'The internet went down during the storm.',         folderId:'f12', imageUrl:'https://images.unsplash.com/photo-1563986768609-522f8f0753e0?auto=format&fit=crop&w=600&q=60' },
+  { id:'wc06', word:'keyboard',  translation:'клавиатура',example:'My keyboard is mechanical and very loud.',       folderId:'f12', imageUrl:'https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=600&q=60' },
+  { id:'wc07', word:'mouse',     translation:'мышь',     example:'The wireless mouse needs new batteries.',         folderId:'f12', imageUrl:'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&w=600&q=60' },
+  { id:'wc08', word:'password',  translation:'пароль',   example:'Use a strong password for your account.',         folderId:'f12', imageUrl:'https://images.unsplash.com/photo-1510511459019-67eaa15b2c3b?auto=format&fit=crop&w=600&q=60' },
+  { id:'wc09', word:'phone',     translation:'телефон',  example:'My phone battery lasts the whole day.',            folderId:'f12', imageUrl:'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=600&q=60' },
+  { id:'wc10', word:'program',   translation:'программа', example:'This program edits photos quickly.',              folderId:'f12', imageUrl:'https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&w=600&q=60' },
+  { id:'wc11', word:'screen',    translation:'экран',    example:'The screen of my laptop is 15 inches.',           folderId:'f12', imageUrl:'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=600&q=60' },
+  { id:'wc12', word:'website',   translation:'сайт',     example:'Visit our website for more information.',         folderId:'f12', imageUrl:'https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?auto=format&fit=crop&w=600&q=60' }
+];
+
+// Экспорт в window (без модулей, чтобы работало через обычный <script>)
+window.SYSTEM_FOLDERS = SYSTEM_FOLDERS;
+window.SYSTEM_WORDS = SYSTEM_WORDS;
+
+</script>
+<script>
+/* ============================================================
+ * script.js — логика ETT v3 (English Today and Tomorrow)
+ * Vanilla JavaScript ES6+, без библиотек и фреймворков.
+ *
+ * v3: PWA + безопасность
+ *  - Service Worker (офлайн, кэш картинок)
+ *  - кнопка установки PWA (beforeinstallprompt)
+ *  - sanitizeURL: блокировка javascript:, data: (кроме картинок), blob:
+ *  - sanitizeText: лимиты длины и контроль символов
+ *  - убран inline-onerror (совместимость с CSP)
+ *  - входная валидация pattern и maxlength в форме
+ *  - sanitizeEmoji: только эмодзи в icon-полях
+ * ============================================================
+ *
+ * v2: Web Speech API, выбор тем для повторения, онбординг,
+ *     тёмная тема, режим для слабовидящих, левое боковое меню,
+ *     прогресс-бар, индикатор изученности, горячие клавиши,
+ *     сохранение прогресса, статистика за всё время.
+ * ============================================================ */
+(function () {
+  'use strict';
+
+  /* ============================================================
+   * КОНСТАНТЫ
+   * ============================================================ */
+  const LS_FOLDERS  = 'ett_folders';
+  const LS_WORDS    = 'ett_words';
+  const LS_STATS    = 'ett_stats';        // статистика за всё время
+  const LS_PROGRESS = 'ett_progress';     // незавершённая сессия повторения
+  const LS_ONB      = 'ett_onb_done';     // флаг онбординга
+  const LS_THEME    = 'ett_theme';        // тема: '' | 'dark' | 'a11y'
+  const LS_SIDEBAR  = 'ett_sidebar';      // состояние бокового меню
+  const LS_ACCENT   = 'ett_accent';       // акцентный цвет
+  const LS_FONT     = 'ett_font';         // шрифт
+  const LS_FONTSIZE = 'ett_fontsize';     // размер шрифта
+  const LS_PALETTE  = 'ett_palette';      // готовая палитра
+
+  // Готовые палитры: [accent, dark, darkHover, danger, success]
+  const PALETTES = {
+    ocean:   { accent:'#0284c7', dark:'#0f172a', danger:'#dc2626', success:'#16a34a', name:'Океан' },
+    forest:  { accent:'#16a34a', dark:'#14532d', danger:'#dc2626', success:'#16a34a', name:'Лес' },
+    sunset:  { accent:'#ea580c', dark:'#7c2d12', danger:'#dc2626', success:'#16a34a', name:'Закат' },
+    lavender:{ accent:'#7c3aed', dark:'#2e1065', danger:'#dc2626', success:'#16a34a', name:'Лаванда' },
+    cherry:  { accent:'#dc2626', dark:'#7f1d1d', danger:'#991b1b', success:'#16a34a', name:'Вишня' },
+    mint:    { accent:'#0d9488', dark:'#134e4a', danger:'#dc2626', success:'#16a34a', name:'Мята' },
+    gold:    { accent:'#ca8a04', dark:'#713f12', danger:'#dc2626', success:'#16a34a', name:'Золото' },
+    mono:    { accent:'#475569', dark:'#0f172a', danger:'#dc2626', success:'#16a34a', name:'Монохром' }
+  };
+
+  const UNSPLASH_KEY = 'YOUR_UNSPLASH_ACCESS_KEY'; // плейсхолдер
+  const UNSPLASH_ENDPOINT = 'https://api.unsplash.com/search/photos';
+
+  /* ============================================================
+   * СОСТОЯНИЕ
+   * ============================================================ */
+  let folders = [];
+  let words = [];
+  let activeFolderId = 'all';
+  let searchQuery = '';
+  let studySession = null;
+  let moveWordId = null;
+  let stats = { learned: 0, best: 0, lastStudy: null };  // статистика за всё время
+
+  /* ============================================================
+   * loadState — загрузка состояния из LocalStorage
+   *  С защитой: если данные повреждены или содержат небезопасные поля,
+   *  сбрасываем к встроенному словарю.
+   * ============================================================ */
+  function loadState() {
+    try {
+      const f = localStorage.getItem(LS_FOLDERS);
+      const w = localStorage.getItem(LS_WORDS);
+      if (f && w) {
+        folders = JSON.parse(f);
+        words = JSON.parse(w);
+        // Санитизация загруженных данных (защита от подделки через DevTools)
+        folders.forEach(folder => {
+          folder.id   = sanitizeText(folder.id, 20);
+          folder.name = sanitizeText(folder.name, LIMITS.FOLDER_NAME_MAX);
+          folder.icon = sanitizeEmoji(folder.icon);
+          folder.isSystem = !!folder.isSystem;
+        });
+        words.forEach(word => {
+          word.id         = sanitizeText(word.id, 20);
+          word.word       = sanitizeText(word.word, LIMITS.WORD_MAX);
+          word.translation= sanitizeText(word.translation, LIMITS.TRANSLATION_MAX);
+          word.example    = sanitizeText(word.example, LIMITS.EXAMPLE_MAX);
+          word.folderId   = sanitizeText(word.folderId, 20);
+          word.imageUrl   = sanitizeURL(word.imageUrl);
+        });
+        // Удаляем слова с пустыми обязательными полями
+        words = words.filter(w => w.word && w.translation && w.folderId);
+        // Удаляем папки без id
+        folders = folders.filter(f => f.id);
+      } else {
+        folders = JSON.parse(JSON.stringify(window.SYSTEM_FOLDERS || []));
+        words = JSON.parse(JSON.stringify(window.SYSTEM_WORDS || []));
+        saveState();
+      }
+    } catch (e) {
+      console.warn('LocalStorage read failed', e);
+      folders = JSON.parse(JSON.stringify(window.SYSTEM_FOLDERS || []));
+      words = JSON.parse(JSON.stringify(window.SYSTEM_WORDS || []));
+      saveState();
+    }
+    // Загрузка статистики
+    try {
+      const s = localStorage.getItem(LS_STATS);
+      if (s) stats = JSON.parse(s);
+    } catch (_) {}
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(LS_FOLDERS, JSON.stringify(folders));
+      localStorage.setItem(LS_WORDS, JSON.stringify(words));
+    } catch (e) {
+      toast('Не удалось сохранить: ' + e.message, 'error');
+    }
+  }
+
+  function saveStats() {
+    localStorage.setItem(LS_STATS, JSON.stringify(stats));
+  }
+
+  /* ============================================================
+   * УТИЛИТЫ БЕЗОПАСНОСТИ
+   * ============================================================ */
+
+  // Максимальные длины полей (защита от переполнения и DoS)
+  const LIMITS = {
+    WORD_MAX: 80,        // английское слово
+    TRANSLATION_MAX: 80, // перевод
+    EXAMPLE_MAX: 200,    // пример
+    FOLDER_NAME_MAX: 40, // имя папки
+    URL_MAX: 500,        // длина URL картинки
+    ICON_MAX: 8,         // эмодзи-иконка (1-2 эмодзи максимум)
+  };
+
+  // Разрешённые схемы URL для imageUrl (защита от javascript:, data:text/html)
+  const SAFE_URL_HOSTS = [
+    'images.unsplash.com',
+    'source.unsplash.com',
+    'api.unsplash.com'
+  ];
+
+  /*
+   * escapeHTML — экранирует спецсимволы для вставки в текстовый узел или атрибут
+   */
+  function escapeHTML(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+
+  /*
+   * sanitizeText — обрезает строку до лимита и удаляет управляющие символы
+   * (кроме таба и перевода строки)
+   */
+  function sanitizeText(s, maxLen) {
+    s = String(s || '');
+    // Удаляем управляющие символы кроме \t, \n, \r
+    s = s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+    if (maxLen) s = s.slice(0, maxLen);
+    return s.trim();
+  }
+
+  /*
+   * sanitizeURL — проверяет URL картинки на безопасность.
+   * Возвращает безопасный URL или пустую строку, если URL опасен.
+   * Разрешены: http(s) на любой хост (картинки с любого CDN),
+   *            data:image/* (Base64 картинок),
+   *            blob: (для локально созданных объектов).
+   * Запрещены: javascript:, data:text/html, file:, vbscript:.
+   */
+  function sanitizeURL(url) {
+    url = String(url || '').trim();
+    if (!url || url.length > LIMITS.URL_MAX) return '';
+    // Декодируем для проверки реальной схемы
+    let lower = url.toLowerCase();
+    try { lower = decodeURIComponent(lower); } catch (_) {}
+
+    // Явный запрет опасных схем
+    if (/^\s*(javascript|vbscript|file|data:text|data:application|data:base64)/i.test(lower)) return '';
+    // data:image/* — разрешаем (картинки в Base64)
+    if (/^data:image\/(png|jpeg|jpg|gif|webp|svg)/i.test(lower)) return url;
+    // blob: — разрешаем
+    if (lower.startsWith('blob:')) return url;
+    // http(s) — разрешаем
+    if (/^https?:\/\//i.test(url)) {
+      try {
+        const u = new URL(url);
+        // Блокируем localhost и приватные IP (защита от SSRF в браузере)
+        if (u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '0.0.0.0') {
+          return '';
+        }
+        // Блокируем приватные диапазоны (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+        if (/^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.)/.test(u.hostname)) {
+          return '';
+        }
+        return url;
+      } catch (e) { return ''; }
+    }
+    return '';
+  }
+
+  /*
+   * sanitizeEmoji — принимает только эмодзи и пробельные символы,
+   * обрезает до 2 эмодзи (чтобы нельзя было подсунуть длинную строку)
+   */
+  function sanitizeEmoji(s) {
+    s = String(s || '').trim();
+    if (!s) return '📁';
+    // Берём только первые 2 символа-эмодзи (Unicode emoji блок)
+    // Удаляем любые управляющие и потенциально опасные символы
+    const cleaned = s.replace(/[\x00-\x1F\x7F<>"'&]/g, '');
+    if (!cleaned) return '📁';
+    return cleaned.slice(0, 4); // эмодзи могут быть составными до 4 code units
+  }
+
+  function uid(prefix) {
+    return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+  function $(sel, ctx) { return (ctx || document).querySelector(sel); }
+  function $all(sel, ctx) { return Array.from((ctx || document).querySelectorAll(sel)); }
+  function toast(msg, type) {
+    const el = document.createElement('div');
+    el.className = 'toast' + (type ? ' is-' + type : '');
+    el.textContent = msg;  // textContent безопаснее innerHTML
+    $('#toasts').appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  }
+
+  /* ============================================================
+   * Web Speech API — озвучка английского слова
+   * ============================================================ */
+  function speak(text) {
+    if (!('speechSynthesis' in window)) {
+      toast('Озвучка не поддерживается браузером', 'error');
+      return;
+    }
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      u.rate = 0.9;
+      // Найти английский голос, если доступен
+      const voices = window.speechSynthesis.getVoices();
+      const enVoice = voices.find(v => v.lang && v.lang.startsWith('en'));
+      if (enVoice) u.voice = enVoice;
+      window.speechSynthesis.speak(u);
+    } catch (e) {
+      console.warn('TTS error', e);
+    }
+  }
+
+  /* ============================================================
+   * ТЕМЫ — переключение тёмной темы и режима для слабовидящих
+   *  + акцентный цвет, шрифт, размер шрифта (настройки оформления)
+   * ============================================================ */
+  function applyTheme(theme) {
+    document.body.classList.remove('dark-theme', 'a11y');
+    if (theme === 'dark') document.body.classList.add('dark-theme');
+    else if (theme === 'a11y') document.body.classList.add('a11y');
+    localStorage.setItem(LS_THEME, theme || '');
+    // Подсветка активных кнопок
+    $('#btnDarkMode').classList.toggle('is-active', theme === 'dark');
+    $('#btnA11y').classList.toggle('is-active', theme === 'a11y');
+    $('#sideDark').classList.toggle('is-active', theme === 'dark');
+    $('#sideA11y').classList.toggle('is-active', theme === 'a11y');
+    // Подсветка в настройках
+    $all('.theme-option').forEach(o => {
+      o.classList.toggle('is-active', o.dataset.theme === (theme || ''));
+    });
+  }
+  function toggleDark() {
+    const cur = localStorage.getItem(LS_THEME) || '';
+    applyTheme(cur === 'dark' ? '' : 'dark');
+    toast(cur === 'dark' ? 'Светлая тема' : 'Тёмная тема включена', 'success');
+  }
+  function toggleA11y() {
+    const cur = localStorage.getItem(LS_THEME) || '';
+    applyTheme(cur === 'a11y' ? '' : 'a11y');
+    toast(cur === 'a11y' ? 'Стандартный режим' : 'Режим для слабовидящих включён', 'success');
+  }
+
+  /* ============================================================
+   * НАСТРОЙКИ ОФОРМЛЕНИЯ: акцент, шрифт, размер шрифта
+   * ============================================================ */
+  function applyAccent(color) {
+    if (!color) color = '#0284c7';
+    // Логируем亮度 для выбора контрастного варианта акцента на тёмном
+    document.documentElement.style.setProperty('--c-accent', color);
+    // Вычисляем более тёмный вариант для hover
+    const darker = darkenColor(color, 15);
+    document.documentElement.style.setProperty('--c-accent-dark', darker);
+    localStorage.setItem(LS_ACCENT, color);
+    // Подсветка в настройках
+    $all('.accent-option').forEach(o => {
+      o.classList.toggle('is-active', o.dataset.accent === color);
+    });
+  }
+
+  function applyFont(font) {
+    if (!font) font = 'Inter';
+    document.documentElement.style.setProperty('--app-font', `'${font}', sans-serif`);
+    document.body.style.fontFamily = `'${font}', system-ui, sans-serif`;
+    localStorage.setItem(LS_FONT, font);
+    $all('.font-option').forEach(o => {
+      o.classList.toggle('is-active', o.dataset.font === font);
+    });
+  }
+
+  function applyFontSize(size) {
+    if (!size) size = 16;
+    size = parseInt(size, 10);
+    document.documentElement.style.setProperty('--font-base', size + 'px');
+    localStorage.setItem(LS_FONTSIZE, size);
+    $all('.size-option').forEach(o => {
+      o.classList.toggle('is-active', parseInt(o.dataset.size, 10) === size);
+    });
+  }
+
+  // Затемнение HEX-цвета на percent %
+  function darkenColor(hex, percent) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const factor = 1 - percent / 100;
+    const nr = Math.max(0, Math.round(r * factor));
+    const ng = Math.max(0, Math.round(g * factor));
+    const nb = Math.max(0, Math.round(b * factor));
+    return '#' + [nr, ng, nb].map(x => x.toString(16).padStart(2, '0')).join('');
+  }
+
+  function resetSettings() {
+    applyTheme('');
+    applyAccent('#0284c7');
+    applyFont('Inter');
+    applyFontSize(16);
+    applyPalette('ocean');
+    toast('Настройки сброшены', 'success');
+  }
+
+  /* ============================================================
+   * applyPalette — применить готовую палитру (меняет accent + dark)
+   * ============================================================ */
+  function applyPalette(name) {
+    if (!name || !PALETTES[name]) name = 'ocean';
+    const p = PALETTES[name];
+    document.documentElement.style.setProperty('--c-accent', p.accent);
+    document.documentElement.style.setProperty('--c-accent-dark', darkenColor(p.accent, 15));
+    document.documentElement.style.setProperty('--c-dark', p.dark);
+    document.documentElement.style.setProperty('--c-danger', p.danger);
+    document.documentElement.style.setProperty('--c-success', p.success);
+    localStorage.setItem(LS_PALETTE, name);
+    localStorage.setItem(LS_ACCENT, p.accent);
+    // Подсветка в настройках
+    $all('.palette-option').forEach(o => {
+      o.classList.toggle('is-active', o.dataset.palette === name);
+    });
+    $all('.accent-option').forEach(o => {
+      o.classList.toggle('is-active', o.dataset.accent === p.accent);
+    });
+  }
+
+  /* ============================================================
+   * ЛЕВОЕ БОКОВОЕ МЕНЮ
+   * ============================================================ */
+  function toggleSidebar(forceOpen) {
+    const isOpen = document.body.classList.contains('sidebar-open');
+    const willOpen = forceOpen !== undefined ? forceOpen : !isOpen;
+    document.body.classList.toggle('sidebar-open', willOpen);
+    document.body.classList.toggle('sidebar-closed', !willOpen);
+    $('#sidebarOverlay').hidden = !willOpen;
+    localStorage.setItem(LS_SIDEBAR, willOpen ? 'open' : 'closed');
+  }
+
+  function renderSidebarFolders() {
+    const box = $('#sideFolders');
+    box.innerHTML = folders.map(f => {
+      const count = words.filter(w => w.folderId === f.id).length;
+      return `<button class="side-link" data-jump-folder="${f.id}">${f.icon} ${escapeHTML(f.name)} <span class="tab-count">${count}</span></button>`;
+    }).join('');
+    $all('[data-jump-folder]', box).forEach(b => {
+      b.onclick = () => {
+        jumpToFolder(b.dataset.jumpFolder);
+        if (window.innerWidth <= 860) toggleSidebar(false);
+      };
+    });
+  }
+
+  function updateStats() {
+    $('#statTotal').textContent = words.length;
+    $('#statLearned').textContent = stats.learned;
+    $('#statBest').textContent = stats.best;
+  }
+
+  /* ============================================================
+   * renderAll — перерисовка вкладок, бокового меню и основной области
+   * ============================================================ */
+  function renderAll() {
+    renderTabs();
+    renderSidebarFolders();
+    renderGroups();
+    updateStats();
+  }
+
+  /* ============================================================
+   * renderTabs — лента вкладок-папок (с индикатором изученности)
+   * ============================================================ */
+  function renderTabs() {
+    const tabs = $('#tabs');
+    tabs.innerHTML = '';
+
+    const allCount = words.length;
+    const allLearned = stats.learned;
+    const allTab = document.createElement('button');
+    allTab.className = 'tab' + (activeFolderId === 'all' ? ' is-active' : '');
+    allTab.innerHTML = `<span class="tab-icon">📚</span> Все слова <span class="tab-count">${allCount}</span>` +
+                       `<span class="tab-progress"><span class="tab-progress-fill" style="width:${allCount ? Math.min(100, allLearned / allCount * 100) : 0}%"></span></span>`;
+    allTab.onclick = () => { jumpToFolder('all'); };
+    tabs.appendChild(allTab);
+
+    folders.forEach(f => {
+      const count = words.filter(w => w.folderId === f.id).length;
+      const learnedInFolder = stats.folders && stats.folders[f.id] || 0;
+      const pct = count ? Math.min(100, learnedInFolder / count * 100) : 0;
+      const tab = document.createElement('button');
+      tab.className = 'tab' + (activeFolderId === f.id ? ' is-active' : '');
+      const del = f.isSystem ? '' :
+        `<button class="tab-del" title="Удалить папку" data-del="${f.id}">✕</button>`;
+      tab.innerHTML = `<span class="tab-icon">${f.icon}</span> ${escapeHTML(f.name)} ` +
+                      `<span class="tab-count">${count}</span> ${del}` +
+                      `<span class="tab-progress"><span class="tab-progress-fill" style="width:${pct}%"></span></span>`;
+      tab.onclick = (e) => {
+        if (e.target.dataset.del) { e.stopPropagation(); return; }
+        jumpToFolder(f.id);
+      };
+      const delBtn = tab.querySelector('[data-del]');
+      if (delBtn) {
+        delBtn.onclick = (e) => { e.stopPropagation(); deleteFolder(f.id); };
+      }
+      tabs.appendChild(tab);
+    });
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'tab tab-add';
+    addBtn.innerHTML = '＋ Папка';
+    addBtn.onclick = createFolder;
+    tabs.appendChild(addBtn);
+  }
+
+  /* ============================================================
+   * createFolder / deleteFolder
+   * ============================================================ */
+  function createFolder() {
+    const name = sanitizeText(prompt('Имя новой папки:'), LIMITS.FOLDER_NAME_MAX);
+    if (!name) return;
+    const iconRaw = sanitizeEmoji(prompt('Эмодзи-иконка (необязательно):'));
+    const icon = iconRaw || '📁';
+    const f = { id: uid('f'), name, icon, isSystem: false };
+    folders.push(f);
+    saveState();
+    activeFolderId = f.id;
+    renderAll();
+    toast('Папка «' + f.name + '» создана', 'success');
+  }
+
+  function deleteFolder(id) {
+    const f = folders.find(x => x.id === id);
+    if (!f || f.isSystem) { toast('Системную папку удалить нельзя', 'error'); return; }
+    if (!confirm(`Удалить папку «${f.name}»? Слова будут перемещены в «Еда».`)) return;
+    const fallback = folders.find(x => x.isSystem) || folders[0];
+    words.forEach(w => { if (w.folderId === id) w.folderId = fallback.id; });
+    folders = folders.filter(x => x.id !== id);
+    if (activeFolderId === id) activeFolderId = 'all';
+    saveState();
+    renderAll();
+    toast('Папка удалена', 'success');
+  }
+
+  /* ============================================================
+   * sectionWords / sectionHTML / cardHTML
+   * ============================================================ */
+  function sectionWords(folderId) {
+    let list = words.filter(w => w.folderId === folderId);
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(w =>
+        (w.word || '').toLowerCase().includes(q) ||
+        (w.translation || '').toLowerCase().includes(q)
+      );
+    }
+    return list.sort((a, b) => (a.word || '').localeCompare(b.word || ''));
+  }
+
+  function sectionHTML(folder, list) {
+    if (searchQuery && list.length === 0) return '';
+    if (activeFolderId !== 'all' && activeFolderId !== folder.id) return '';
+
+    const cards = list.map(cardHTML).join('');
+    const rhyme = folder.rhyme ? `
+      <div class="rhyme-block">
+        <div class="rhyme-title">📝 Стишок-запоминалка</div>
+        <pre class="rhyme-text">${escapeHTML(folder.rhyme)}</pre>
+        <button class="btn btn-ghost rhyme-speak" data-rhyme-speak="${escapeHTML(folder.rhyme)}">🔊 Прочитать</button>
+      </div>
+    ` : '';
+    return `
+      <section class="section" id="folder-${folder.id}" data-folder="${folder.id}">
+        <div class="section-header">
+          <span class="sec-icon">${folder.icon}</span>
+          <span class="sec-title">${escapeHTML(folder.name)}</span>
+          <span class="sec-count">${list.length}</span>
+          ${list.length ? `<button class="btn-study" data-study-folder="${folder.id}">🎓 Повторить группу</button>` : ''}
+        </div>
+        ${rhyme}
+        <div class="cards-grid">${cards}</div>
+      </section>
+    `;
+  }
+
+  function cardHTML(w) {
+    return `
+      <div class="card-wrapper">
+        <div class="card" data-id="${w.id}">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="card-word">${escapeHTML(w.translation)}</div>
+              <div class="card-hint">нажми — по-английски</div>
+            </div>
+            <div class="card-face card-back">
+              <button class="card-speak" data-speak="${escapeHTML(w.word)}" title="Озвучить">🔊</button>
+              <div class="card-word">${escapeHTML(w.word)}</div>
+              <div class="card-example">«${escapeHTML(w.example || '')}»</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="act-edit" data-edit="${w.id}" title="Редактировать">✏️ Редакт.</button>
+          <button data-move="${w.id}" title="Переместить">📦</button>
+          <button data-copy="${w.id}" title="Копировать">📄</button>
+          <button class="act-del" data-del-word="${w.id}" title="Удалить">🗑</button>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ============================================================
+   * renderGroups — основная область
+   *  Если activeFolderId === 'all' и нет поиска:
+   *    1) приветственный блок
+   *    2) сетка всех групп (карточек-папок) — кликабельные
+   *    3) последние добавленные слова
+   *  Иначе — одна секция выбранной папки (как отдельная "страница")
+   * ============================================================ */
+  function renderGroups() {
+    const main = $('#main');
+
+    // Поиск работает везде — отдельная страница результатов
+    if (searchQuery) {
+      return renderSearchResults(main);
+    }
+
+    // Главная страница — "Все слова"
+    if (activeFolderId === 'all') {
+      return renderHomePage(main);
+    }
+
+    // Отдельная папка
+    const folder = folders.find(f => f.id === activeFolderId);
+    if (!folder) {
+      activeFolderId = 'all';
+      return renderHomePage(main);
+    }
+    const list = sectionWords(folder.id);
+    main.innerHTML = `
+      <div class="breadcrumb">
+        <a href="#all" data-jump-folder="all">📚 Все слова</a>
+        <span class="bc-sep">›</span>
+        <span class="bc-current">${folder.icon} ${escapeHTML(folder.name)}</span>
+      </div>
+      ${sectionHTML(folder, list)}
+    `;
+    bindCardEvents(main);
+  }
+
+  /*
+   * renderHomePage — главная страница:
+   *  Компактный welcome (одна строка) + ВСЕ секции со ВСЕМИ карточками-перевёртышами.
+   *  Главная страница должна быть заполнена карточками, как было раньше.
+   */
+  function renderHomePage(main) {
+    const totalWords = words.length;
+    const totalFolders = folders.length;
+    const learnedTotal = stats.learned || 0;
+
+    const sortedFolders = folders.slice().sort((a, b) => {
+      if (a.isSystem && !b.isSystem) return -1;
+      if (!a.isSystem && b.isSystem) return 1;
+      if (a.isSystem && b.isSystem) return a.id.localeCompare(b.id);
+      return a.name.localeCompare(b.name);
+    });
+
+    // Компактный приветственный блок (одна полоса)
+    const welcome = `
+      <div class="welcome-compact">
+        <div class="wc-icon">📖</div>
+        <div class="wc-text">
+          <div class="wc-title">English Today and Tomorrow</div>
+          <div class="wc-slogan">Учи сегодня — говори завтра</div>
+        </div>
+        <div class="wc-stats">
+          <span><strong>${totalFolders}</strong> тем</span>
+          <span><strong>${totalWords}</strong> слов</span>
+          <span><strong>${learnedTotal}</strong> изучено</span>
+        </div>
+        <div class="wc-actions">
+          <button class="btn btn-primary" id="welcomeStudy">🎓 Повторение</button>
+          <button class="btn btn-ghost" id="welcomeAdd">＋ Слово</button>
+        </div>
+      </div>
+    `;
+
+    // ВСЕ секции со ВСЕМИ карточками-перевёртышами
+    const sectionsWithCards = sortedFolders
+      .filter(f => sectionWords(f.id).length > 0);
+
+    const sectionsHtml = sectionsWithCards
+      .map(f => sectionHTML(f, sectionWords(f.id)))
+      .join('');
+
+    main.innerHTML = welcome + sectionsHtml;
+
+    $('#welcomeStudy').onclick = () => openStudy('all');
+    $('#welcomeAdd').onclick = () => openWordModal(null);
+    bindCardEvents(main);
+  }
+
+  /*
+   * renderSearchResults — результаты поиска (по всем папкам)
+   */
+  function renderSearchResults(main) {
+    const q = searchQuery.toLowerCase();
+    const matchedWords = words.filter(w =>
+      (w.word || '').toLowerCase().includes(q) ||
+      (w.translation || '').toLowerCase().includes(q)
+    ).sort((a, b) => (a.word || '').localeCompare(b.word || ''));
+
+    if (!matchedWords.length) {
+      main.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <h3>Ничего не найдено</h3>
+          <p>По запросу «${escapeHTML(searchQuery)}» слов нет. Попробуйте изменить запрос.</p>
+          <div class="empty-actions">
+            <button class="btn btn-ghost" id="clearSearch">← К началу</button>
+          </div>
+        </div>
+      `;
+      $('#clearSearch').onclick = () => {
+        $('#search').value = '';
+        searchQuery = '';
+        jumpToFolder('all');
+      };
+      return;
+    }
+
+    const byFolder = {};
+    matchedWords.forEach(w => {
+      if (!byFolder[w.folderId]) byFolder[w.folderId] = [];
+      byFolder[w.folderId].push(w);
+    });
+
+    const sectionsHtml = Object.keys(byFolder).map(fid => {
+      const f = folders.find(x => x.id === fid);
+      if (!f) return '';
+      return sectionHTML(f, byFolder[fid]);
+    }).join('');
+
+    main.innerHTML = `
+      <div class="breadcrumb">
+        <a href="#all" data-jump-folder="all">📚 Все слова</a>
+        <span class="bc-sep">›</span>
+        <span class="bc-current">🔍 Поиск: «${escapeHTML(searchQuery)}» (${matchedWords.length})</span>
+      </div>
+      ${sectionsHtml}
+    `;
+    bindCardEvents(main);
+  }
+
+  function bindCardEvents(main) {
+    $all('.card', main).forEach(c => {
+      c.onclick = (e) => {
+        if (e.target.closest('button')) return;
+        c.classList.toggle('is-flipped');
+      };
+    });
+    $all('[data-speak]', main).forEach(b => {
+      b.onclick = (e) => { e.stopPropagation(); speak(b.dataset.speak); };
+    });
+    $all('[data-rhyme-speak]', main).forEach(b => {
+      b.onclick = () => speakRhyme(b.dataset.rhymeSpeak);
+    });
+    $all('[data-edit]', main).forEach(b => b.onclick = () => openWordModal(b.dataset.edit));
+    $all('[data-move]', main).forEach(b => b.onclick = () => openMoveModal(b.dataset.move));
+    $all('[data-copy]', main).forEach(b => b.onclick = () => copyWord(b.dataset.copy));
+    $all('[data-del-word]', main).forEach(b => b.onclick = () => deleteWord(b.dataset.delWord));
+    $all('[data-study-folder]', main).forEach(b => b.onclick = () => openStudy(b.dataset.studyFolder));
+  }
+
+  function bindFolderCards(main) {
+    $all('[data-jump-folder]', main).forEach(el => {
+      el.onclick = (e) => {
+        e.preventDefault();
+        jumpToFolder(el.dataset.jumpFolder);
+      };
+    });
+  }
+
+  /*
+   * speakRhyme — прочитать стишок по строкам на английском
+   */
+  function speakRhyme(text) {
+    if (!('speechSynthesis' in window)) {
+      toast('Озвучка не поддерживается', 'error');
+      return;
+    }
+    try {
+      window.speechSynthesis.cancel();
+      const lines = text.split('\n');
+      lines.forEach((line, i) => {
+        const u = new SpeechSynthesisUtterance(line);
+        u.lang = 'en-US';
+        u.rate = 0.85;
+        setTimeout(() => window.speechSynthesis.speak(u), i * 2200);
+      });
+      toast('🔊 Читаю стишок…', 'success');
+    } catch (e) {
+      console.warn('TTS error', e);
+    }
+  }
+
+  /* ============================================================
+   * ХЕШ-РОУТИНГ — вкладки как страницы с URL
+   *   #all            → все слова (главная)
+   *   #f1 ... #f12    → конкретная папка
+   *   #study          → режим повторения
+   *   #add            → окно добавления слова
+   *   #import         → окно импорта
+   * ============================================================ */
+  function handleHashChange() {
+    const hash = (location.hash || '#all').replace(/^#/, '');
+    if (!hash || hash === 'all') {
+      activeFolderId = 'all';
+    } else if (hash.startsWith('f') && folders.find(f => f.id === hash)) {
+      activeFolderId = hash;
+    } else if (hash === 'study') {
+      openStudy('all');
+      return;
+    } else if (hash === 'add') {
+      openWordModal(null);
+      return;
+    } else if (hash === 'import') {
+      openModal('#importModal');
+      return;
+    } else {
+      activeFolderId = 'all';
+    }
+    renderAll();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function jumpToFolder(folderId) {
+    location.hash = folderId || 'all';
+    if (window.innerWidth <= 860) toggleSidebar(false);
+  }
+
+  /* ============================================================
+   * copyWord / deleteWord
+   * ============================================================ */
+  function copyWord(id) {
+    const w = words.find(x => x.id === id);
+    if (!w) return;
+    words.push(Object.assign({}, w, { id: uid('w') }));
+    saveState();
+    renderAll();
+    toast('Слово скопировано', 'success');
+  }
+
+  function deleteWord(id) {
+    const w = words.find(x => x.id === id);
+    if (!w) return;
+    if (!confirm(`Удалить слово «${w.word}»?`)) return;
+    words = words.filter(x => x.id !== id);
+    saveState();
+    renderAll();
+    toast('Слово удалено', 'success');
+  }
+
+  /* ============================================================
+   * openMoveModal / confirmMove
+   * ============================================================ */
+  function openMoveModal(wordId) {
+    moveWordId = wordId;
+    const w = words.find(x => x.id === wordId);
+    if (!w) return;
+    $('#moveWordInfo').textContent = `Слово: ${w.word} — ${w.translation}`;
+    const list = $('#moveList');
+    list.innerHTML = folders.map(f => `
+      <div class="move-item" data-folder="${f.id}">
+        <span class="mi-icon">${f.icon}</span>
+        <span class="mi-name">${escapeHTML(f.name)}</span>
+        <span class="mi-action">переместить / копировать</span>
+      </div>
+    `).join('');
+    $all('.move-item', list).forEach(item => {
+      item.onclick = () => confirmMove(item.dataset.folder, false);
+      item.oncontextmenu = (e) => { e.preventDefault(); confirmMove(item.dataset.folder, true); };
+    });
+    openModal('#moveModal');
+  }
+
+  function confirmMove(folderId, asCopy) {
+    const w = words.find(x => x.id === moveWordId);
+    if (!w) return;
+    const f = folders.find(x => x.id === folderId);
+    if (asCopy) {
+      words.push(Object.assign({}, w, { id: uid('w'), folderId }));
+      toast(`Скопировано в «${f.name}»`, 'success');
+    } else {
+      w.folderId = folderId;
+      toast(`Перенесено в «${f.name}»`, 'success');
+    }
+    saveState();
+    closeModal('#moveModal');
+    renderAll();
+  }
+
+  /* ============================================================
+   * openWordModal / saveWord
+   * ============================================================ */
+  function openWordModal(id) {
+    const form = $('#wordForm');
+    form.reset();
+    $('#fImgUrl').value = '';
+    $('#fId').value = id || '';
+    $('#imgPreview').innerHTML = '';
+    $('#unsplashResults').innerHTML = '<span class="muted">Здесь появятся 3 превью</span>';
+    $('#wordModalTitle').textContent = id ? 'Редактировать слово' : 'Добавить слово';
+
+    const sel = $('#fFolder');
+    sel.innerHTML = folders.map(f =>
+      `<option value="${f.id}">${f.icon} ${escapeHTML(f.name)}</option>`
+    ).join('');
+
+    if (id) {
+      const w = words.find(x => x.id === id);
+      if (w) {
+        $('#fWord').value = w.word || '';
+        $('#fTranslation').value = w.translation || '';
+        $('#fExample').value = w.example || '';
+        $('#fFolder').value = w.folderId;
+        $('#fImgUrl').value = w.imageUrl || '';
+        if (w.imageUrl) showImgPreview(w.imageUrl);
+      }
+    } else if (activeFolderId !== 'all') {
+      sel.value = activeFolderId;
+    }
+    openModal('#wordModal');
+  }
+
+  function saveWord(e) {
+    e.preventDefault();
+    const id = $('#fId').value;
+    // Санитизация входных данных
+    const data = {
+      word: sanitizeText($('#fWord').value, LIMITS.WORD_MAX),
+      translation: sanitizeText($('#fTranslation').value, LIMITS.TRANSLATION_MAX),
+      example: sanitizeText($('#fExample').value, LIMITS.EXAMPLE_MAX),
+      folderId: sanitizeText($('#fFolder').value, 20),
+      imageUrl: sanitizeURL($('#fImgUrl').value)
+    };
+    // Валидация: английское слово должно содержать хотя бы одну букву
+    if (!data.word || !/^[A-Za-z\s\-'’]+$/.test(data.word)) {
+      toast('Слово должно содержать только английские буквы', 'error');
+      return;
+    }
+    if (!data.translation) {
+      toast('Заполните перевод', 'error');
+      return;
+    }
+    // Проверка, что папка существует
+    if (!folders.find(f => f.id === data.folderId)) {
+      toast('Выберите существующую папку', 'error');
+      return;
+    }
+    // Автогенерация примера, если поле пустое
+    if (!data.example) {
+      data.example = generateExample(data.word);
+    }
+    // Автоподстановка картинки, если не задана
+    if (!data.imageUrl) {
+      data.imageUrl = generateImageUrl(data.word);
+    }
+    if (id) {
+      const w = words.find(x => x.id === id);
+      Object.assign(w, data);
+      toast('Слово обновлено', 'success');
+    } else {
+      words.push(Object.assign({ id: uid('w') }, data));
+      toast('Слово добавлено', 'success');
+    }
+    saveState();
+    closeModal('#wordModal');
+    renderAll();
+  }
+
+  function selectedImage(url) {
+    $('#fImgUrl').value = url;
+    $all('.unsplash-thumb').forEach(t => t.classList.toggle('is-selected', t.dataset.url === url));
+    showImgPreview(url);
+  }
+
+  function showImgPreview(url) {
+    const box = $('#imgPreview');
+    box.innerHTML = '';
+    const safeUrl = sanitizeURL(url);
+    if (!safeUrl) {
+      const span = document.createElement('span');
+      span.className = 'muted';
+      span.textContent = 'Некорректный URL';
+      box.appendChild(span);
+      return;
+    }
+    const img = document.createElement('img');
+    img.src = safeUrl;
+    img.alt = 'preview';
+    img.onerror = () => {
+      box.innerHTML = '';
+      const span = document.createElement('span');
+      span.className = 'muted';
+      span.textContent = 'Не удалось загрузить';
+      box.appendChild(span);
+    };
+    box.appendChild(img);
+  }
+
+  /* ============================================================
+   * searchUnsplash
+   * ============================================================ */
+  async function searchUnsplash() {
+    const q = $('#unsplashQuery').value.trim();
+    if (!q) { toast('Введите запрос', 'error'); return; }
+    const box = $('#unsplashResults');
+    box.innerHTML = '<span class="muted">🔍 Ищем…</span>';
+    try {
+      let results = [];
+      if (UNSPLASH_KEY && UNSPLASH_KEY !== 'YOUR_UNSPLASH_ACCESS_KEY') {
+        const url = `${UNSPLASH_ENDPOINT}?query=${encodeURIComponent(q)}&per_page=3&client_id=${UNSPLASH_KEY}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Unsplash HTTP ' + res.status);
+        const data = await res.json();
+        results = (data.results || []).map(r => ({
+          url: r.urls.regular,
+          thumb: r.urls.thumb
+        }));
+      } else {
+        results = [1, 2, 3].map(() => ({
+          url: `https://source.unsplash.com/600x400/?${encodeURIComponent(q)}`,
+          thumb: `https://source.unsplash.com/200x150/?${encodeURIComponent(q)}`
+        }));
+      }
+      if (!results.length) { box.innerHTML = '<span class="muted">Ничего не найдено</span>'; return; }
+      // Создаём элементы через DOM API, без innerHTML (защита от XSS)
+      box.innerHTML = '';
+      results.forEach(r => {
+        const safeUrl = sanitizeURL(r.url);
+        const safeThumb = sanitizeURL(r.thumb || r.url);
+        if (!safeUrl || !safeThumb) return;
+        const img = document.createElement('img');
+        img.className = 'unsplash-thumb';
+        img.src = safeThumb;
+        img.alt = q;
+        img.dataset.url = safeUrl;
+        img.onclick = () => selectedImage(safeUrl);
+        box.appendChild(img);
+      });
+    } catch (e) {
+      box.innerHTML = '<span class="muted">Ошибка: ' + escapeHTML(e.message) + '</span>';
+    }
+  }
+
+  /* ============================================================
+   * Парсеры CSV/словаря
+   * ============================================================ */
+  function parseCSVLine(line) {
+    const out = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQ) {
+        if (ch === '"') {
+          if (line[i + 1] === '"') { cur += '"'; i++; }
+          else inQ = false;
+        } else cur += ch;
+      } else {
+        if (ch === '"') inQ = true;
+        else if (ch === ',') { out.push(cur); cur = ''; }
+        else cur += ch;
+      }
+    }
+    out.push(cur);
+    return out.map(s => s.trim());
+  }
+
+  function parseDictionaryText(text) {
+    const rows = [];
+    text.split(/\r?\n/).forEach(line => {
+      line = line.trim();
+      if (!line || line.startsWith('#')) return;
+      // Используем parseCSVLine — он корректно обрабатывает кавычки и запятые внутри
+      const parts = parseCSVLine(line);
+      if (parts.length >= 2) {
+        const first = parts[0];
+        const second = parts[1];
+        // Автоопределение языка
+        if (isRussian(first) && isEnglish(second)) {
+          rows.push({ word: second, translation: first, example: parts[2] || '' });
+        } else if (isEnglish(first) && isRussian(second)) {
+          rows.push({ word: first, translation: second, example: parts[2] || '' });
+        } else {
+          // По умолчанию: первая колонка — английское слово
+          rows.push({ word: first, translation: second, example: parts[2] || '' });
+        }
+      }
+    });
+    return rows;
+  }
+
+  /* ============================================================
+   * ОПРЕДЕЛЕНИЕ ЯЗЫКА по символам
+   * ============================================================ */
+  function isRussian(s) {
+    return /[а-яА-ЯёЁ]/.test(String(s || ''));
+  }
+  function isEnglish(s) {
+    return /^[A-Za-z\s\-'’]+$/.test(String(s || '').trim()) && /[A-Za-z]/.test(String(s || ''));
+  }
+
+  /* ============================================================
+   * Маппинг тем (английских и русских) к системным папкам
+   * ============================================================ */
+  const TOPIC_TO_SYSTEM_FOLDER = {
+    // Еда
+    'food': 'f1', 'еда': 'f1', 'fruit': 'f1', 'fruits': 'f1', 'meal': 'f1', 'meals': 'f1',
+    'drink': 'f1', 'drinks': 'f1', 'cooking': 'f1', 'cuisine': 'f1',
+    // Животные
+    'animals': 'f2', 'животные': 'f2', 'animal': 'f2', 'pets': 'f2', 'wildlife': 'f2',
+    // Семья
+    'family': 'f3', 'семья': 'f3', 'relatives': 'f3', 'kinship': 'f3',
+    // Школа
+    'school': 'f4', 'школа': 'f4', 'education': 'f4', 'classroom': 'f4', 'study': 'f4',
+    'learning': 'f4', 'stationery': 'f4',
+    // Погода
+    'weather': 'f5', 'погода': 'f5', 'climate': 'f5', 'season': 'f5', 'seasons': 'f5',
+    // Спорт
+    'sports': 'f6', 'спорт': 'f6', 'sport': 'f6', 'game': 'f6', 'games': 'f6',
+    'football': 'f6', 'soccer': 'f6',
+    // Путешествия
+    'travel': 'f7', 'путешествия': 'f7', 'transport': 'f7', 'transportation': 'f7',
+    'journey': 'f7', 'trip': 'f7', 'tourism': 'f7', 'airport': 'f7',
+    // Эмоции
+    'emotions': 'f8', 'эмоции': 'f8', 'feelings': 'f8', 'mood': 'f8', 'emotion': 'f8',
+    // Дом
+    'house': 'f9', 'дом': 'f9', 'home': 'f9', 'housing': 'f9', 'furniture': 'f9',
+    'building': 'f9', 'room': 'f9', 'rooms': 'f9',
+    // Одежда
+    'clothes': 'f10', 'одежда': 'f10', 'clothing': 'f10', 'fashion': 'f10', 'wear': 'f10',
+    // Природа
+    'nature': 'f11', 'природа': 'f11', 'environment': 'f11', 'landscape': 'f11',
+    'geography': 'f11', 'plants': 'f11',
+    // Технологии
+    'technology': 'f12', 'технологии': 'f12', 'tech': 'f12', 'computers': 'f12',
+    'computer': 'f12', 'internet': 'f12', 'digital': 'f12', 'it': 'f12', 'electronics': 'f12'
+  };
+
+  /* Найти системную папку по теме (английской или русской) */
+  function findSystemFolderByTopic(topic) {
+    if (!topic) return null;
+    const t = String(topic).toLowerCase().trim();
+    // Точное совпадение
+    if (TOPIC_TO_SYSTEM_FOLDER[t]) return TOPIC_TO_SYSTEM_FOLDER[t];
+    // Частичное совпадение (тема содержит ключевое слово или наоборот)
+    for (const [key, folderId] of Object.entries(TOPIC_TO_SYSTEM_FOLDER)) {
+      if (t.includes(key) || key.includes(t)) return folderId;
+    }
+    return null;
+  }
+
+  /* ============================================================
+   * generateExample — автогенерация примера употребления
+   *  Если у слова нет примера, создаём простое предложение
+   *  по шаблону. Шаблон выбирается детерминированно по слову,
+   *  чтобы одно и то же слово всегда получало один и тот же пример.
+   * ============================================================ */
+  function generateExample(word) {
+    if (!word) return '';
+    const w = word.trim();
+    const lower = w.toLowerCase();
+    const templates = [
+      `I know the word "${w}".`,
+      `She learns "${lower}" at school.`,
+      `The word "${w}" is new to me.`,
+      `I read "${lower}" in a book yesterday.`,
+      `My friend says "${w}" often.`,
+      `We use "${lower}" every day.`,
+      `Can you repeat "${w}" please?`,
+      `"${w}" is an important English word.`,
+      `I heard "${lower}" in the song.`,
+      `The teacher wrote "${w}" on the board.`
+    ];
+    let hash = 0;
+    for (let i = 0; i < w.length; i++) {
+      hash = (hash * 31 + w.charCodeAt(i)) & 0x7fffffff;
+    }
+    return templates[hash % templates.length];
+  }
+
+  function iconForMode(mode, name) {
+    if (mode === 'level') return '🎓';
+    if (mode === 'topic') return '📚';
+    if (mode === 'alpha') return '🔤';
+    if (mode === 'level_topic') return '🎓';
+    return '📥';
+  }
+
+  function letterOf(word) {
+    return (word || '').trim().charAt(0).toUpperCase() || '#';
+  }
+
+  function findOrCreateFolder(name, mode) {
+    let f = folders.find(x => x.name === name);
+    if (f) return f;
+    f = { id: uid('f'), name, icon: iconForMode(mode, name), isSystem: false };
+    folders.push(f);
+    return f;
+  }
+
+  function importWords(rawText, mode) {
+    // Удаляем BOM (byte order mark), если есть
+    if (rawText && rawText.charCodeAt(0) === 0xFEFF) {
+      rawText = rawText.slice(1);
+    }
+    let parsed = [];
+    let detectedDirection = '';  // для отображения пользователю
+
+    try {
+      const j = JSON.parse(rawText);
+      if (Array.isArray(j)) {
+        parsed = j.map(o => ({
+          word: o.word || o.english || o.target || '',
+          translation: o.translation || o.russian || o.gloss || '',
+          example: o.example || o.sentence || '',
+          level: o.level || '',
+          topic: o.topic || o.topics || ''
+        })).filter(x => x.word && x.translation);
+        detectedDirection = 'JSON';
+      }
+    } catch (_) {
+      const lines = rawText.split(/\r?\n/).filter(l => l.trim());
+      if (!lines.length) return { imported: 0, foldersCreated: 0, toSystem: 0, direction: '' };
+      const header = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+      // SMARTool — словарь для англоязычных, изучающих русский:
+      //   'target language lemma'         = РУССКОЕ слово (то, что учат) → translation
+      //   'user language gloss'           = АНГЛИЙСКИЙ перевод (родной язык) → word
+      const smartoolMap = {
+        'target language lemma': 'translation',
+        'user language gloss': 'word',
+        'target language example sentence': 'example',
+        'user language translation': 'exampleEn',
+        'level': 'level',
+        'topic(s)': 'topic',
+        'topics': 'topic',
+        'topic': 'topic'
+      };
+      const colIdx = header.map(h => smartoolMap[h] || null);
+      const isSmartool = colIdx.some(c => c);
+      if (isSmartool) {
+        detectedDirection = 'SMARTool CSV';
+        for (let i = 1; i < lines.length; i++) {
+          const cells = parseCSVLine(lines[i]);
+          const obj = { word:'', translation:'', example:'', level:'', topic:'' };
+          colIdx.forEach((key, idx) => { if (key && cells[idx]) obj[key] = cells[idx]; });
+          // Дополнительная проверка языка
+          if (isRussian(obj.word) && isEnglish(obj.translation)) {
+            const tmp = obj.word;
+            obj.word = obj.translation;
+            obj.translation = tmp;
+          }
+          if (obj.word && obj.translation) parsed.push(obj);
+        }
+      } else {
+        detectedDirection = 'CSV/TXT';
+        parsed = parseDictionaryText(rawText);
+      }
+    }
+
+    if (!parsed.length) return { imported: 0, foldersCreated: 0, toSystem: 0, direction: detectedDirection };
+    let imported = 0, toSystem = 0;
+    const foldersBefore = folders.length;
+    parsed.forEach(p => {
+      // Санитизация
+      let word = sanitizeText(p.word, LIMITS.WORD_MAX);
+      let translation = sanitizeText(p.translation, LIMITS.TRANSLATION_MAX);
+      let example = sanitizeText(p.example, LIMITS.EXAMPLE_MAX);
+      const topic = p.topic || '';
+      if (!word || !translation) return;
+
+      // Финальная проверка языка: word должен быть английским, translation — русским
+      if (isRussian(word) && !isRussian(translation)) {
+        const tmp = word; word = translation; translation = tmp;
+      }
+      // Пропускаем если оба одного языка
+      if (isRussian(word) && isRussian(translation)) return;
+      if (!isRussian(translation) && isEnglish(word) && isEnglish(translation)) return;
+
+      // Автогенерация примера, если его нет
+      if (!example) {
+        example = generateExample(word);
+      }
+
+      // Определение папки
+      let folderId = null;
+      let folderName = '';
+
+      // Режим "auto" — пытаемся найти системную папку по теме
+      if (mode === 'auto') {
+        const systemFolderId = findSystemFolderByTopic(topic);
+        if (systemFolderId) {
+          folderId = systemFolderId;
+          toSystem++;
+        } else {
+          // Если тема есть, но не совпала с системной — создаём папку по теме
+          folderName = topic ? capitalize(sanitizeText(topic, 30)) : 'Импортированные';
+        }
+      } else if (mode === 'one') {
+        folderName = 'Импортированные';
+      } else if (mode === 'alpha') {
+        folderName = letterOf(word);
+      } else if (mode === 'level') {
+        folderName = sanitizeText(p.level || 'Без уровня', 20).toUpperCase();
+      } else if (mode === 'topic') {
+        // Сначала пробуем системную папку
+        const systemFolderId = findSystemFolderByTopic(topic);
+        if (systemFolderId) {
+          folderId = systemFolderId;
+          toSystem++;
+        } else {
+          folderName = topic ? capitalize(sanitizeText(topic, 30)) : 'Без темы';
+        }
+      } else if (mode === 'level_topic') {
+        const systemFolderId = findSystemFolderByTopic(topic);
+        if (systemFolderId) {
+          folderId = systemFolderId;
+          toSystem++;
+        } else {
+          const lvl = sanitizeText(p.level || 'A1', 10).toUpperCase();
+          const top = topic ? capitalize(sanitizeText(topic, 30)) : 'Разное';
+          folderName = `${lvl} · ${top}`;
+        }
+      } else {
+        folderName = 'Импортированные';
+      }
+
+      // Если папка не определена по теме — создаём/находим по имени
+      if (!folderId) {
+        folderName = sanitizeText(folderName, LIMITS.FOLDER_NAME_MAX);
+        const folder = findOrCreateFolder(folderName, mode);
+        folderId = folder.id;
+      }
+
+      // Проверка дубликата в целевой папке
+      const dup = words.find(w => w.folderId === folderId &&
+        (w.word || '').toLowerCase() === word.toLowerCase());
+      if (dup) {
+        // Если дубликат существует, обновляем пример и картинку если их нет
+        if (!dup.example && example) dup.example = example;
+        if (!dup.imageUrl) dup.imageUrl = generateImageUrl(word);
+        return;
+      }
+
+      // Автоподстановка картинки
+      const autoImg = generateImageUrl(word);
+      words.push({
+        id: uid('w'), word, translation, example, folderId, imageUrl: autoImg
+      });
+      imported++;
+    });
+    saveState();
+    return {
+      imported,
+      foldersCreated: folders.length - foldersBefore,
+      toSystem,
+      direction: detectedDirection
+    };
+  }
+
+  /* ============================================================
+   * generateImageUrl — автогенерация URL картинки для слова
+   *  Использует несколько источников в порядке приоритета:
+   *   1. Если есть API-ключ Unsplash — реальный поиск (выполняется отдельно)
+   *   2. source.unsplash.com — тематическая картинка по слову (без ключа)
+   *   3. picsum.photos с seed — запасной вариант
+   * ============================================================ */
+  function generateImageUrl(word) {
+    if (!word) return '';
+    const q = encodeURIComponent(word.toLowerCase().trim());
+    // Source.unsplash.com — отдаёт случайную картинку по теме (без API-ключа)
+    return `https://source.unsplash.com/600x400/?${q}`;
+  }
+
+  /* ============================================================
+   * autoFetchImages — массовый поиск картинок через Unsplash API
+   *  для всех слов без imageUrl. Требует API-ключ.
+   * ============================================================ */
+  async function autoFetchImages() {
+    if (!UNSPLASH_KEY || UNSPLASH_KEY === 'YOUR_UNSPLASH_ACCESS_KEY') {
+      toast('Введите API-ключ Unsplash в script.js для автопоиска картинок', 'error');
+      return;
+    }
+    const wordsWithoutImg = words.filter(w => !w.imageUrl ||
+      w.imageUrl.includes('source.unsplash.com'));
+    if (!wordsWithoutImg.length) {
+      toast('Все слова уже имеют картинки', 'success');
+      return;
+    }
+    if (!confirm(`Найти картинки для ${wordsWithoutImg.length} слов? Это займёт ~${Math.ceil(wordsWithoutImg.length / 30)} сек.`)) return;
+
+    toast(`🔍 Ищу картинки для ${wordsWithoutImg.length} слов…`, 'success');
+    let found = 0;
+    // По 1 слову за раз, с задержкой чтобы не превысить лимит API
+    for (let i = 0; i < wordsWithoutImg.length; i++) {
+      const w = wordsWithoutImg[i];
+      try {
+        const url = `${UNSPLASH_ENDPOINT}?query=${encodeURIComponent(w.word)}&per_page=1&client_id=${UNSPLASH_KEY}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.results && data.results[0]) {
+            w.imageUrl = data.results[0].urls.regular;
+            found++;
+          }
+        }
+      } catch (e) {
+        console.warn('Image search failed for', w.word, e);
+      }
+      // Задержка 200мс между запросами
+      await new Promise(r => setTimeout(r, 200));
+      // Обновляем прогресс каждые 10 слов
+      if (i % 10 === 9) {
+        saveState();
+        renderGroups();
+        toast(`🔍 Обработано ${i + 1}/${wordsWithoutImg.length}…`, 'success');
+      }
+    }
+    saveState();
+    renderGroups();
+    toast(`✅ Найдено картинок: ${found} из ${wordsWithoutImg.length}`, 'success');
+  }
+
+  function capitalize(s) {
+    s = String(s || '');
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  }
+
+  function handleImportFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const mode = $('#importMode').value;
+      const r = importWords(reader.result, mode);
+      showImportStatus(r);
+    };
+    reader.onerror = () => toast('Ошибка чтения файла', 'error');
+    reader.readAsText(file, 'utf-8');
+  }
+
+  async function handleImportUrl() {
+    const url = $('#importUrl').value.trim();
+    if (!url) { toast('Введите URL', 'error'); return; }
+    const status = $('#importStatus');
+    status.hidden = false;
+    status.className = 'import-status';
+    status.textContent = '⏳ Загрузка…';
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      const mode = $('#importMode').value;
+      const r = importWords(text, mode);
+      showImportStatus(r);
+    } catch (e) {
+      status.className = 'import-status';
+      status.style.background = 'rgba(239,68,68,.1)';
+      status.style.borderColor = 'var(--c-danger)';
+      status.style.color = '#7f1d1d';
+      status.textContent = '❌ Ошибка: ' + e.message + '. (CORS? Откройте файл локально.)';
+    }
+  }
+
+  function showImportStatus(r) {
+    const status = $('#importStatus');
+    status.hidden = false;
+    status.className = 'import-status';
+    let msg = `✅ Импортировано слов: ${r.imported}.`;
+    if (r.direction) msg += ` Формат: ${r.direction}.`;
+    if (r.toSystem > 0) msg += ` В системные папки: ${r.toSystem}.`;
+    if (r.foldersCreated > 0) msg += ` Создано новых папок: ${r.foldersCreated}.`;
+    status.textContent = msg;
+    if (r.imported > 0) {
+      renderAll();
+      setTimeout(() => closeModal('#importModal'), 2500);
+    }
+  }
+
+  /* ============================================================
+   * ОНБОРДИНГ
+   * ============================================================ */
+  function maybeShowOnboarding() {
+    if (localStorage.getItem(LS_ONB)) return;
+    openModal('#onboarding');
+    setOnbStep(1);
+  }
+
+  let onbStep = 1;
+  function setOnbStep(n) {
+    onbStep = n;
+    $all('.onb-step').forEach(s => s.hidden = +s.dataset.onbStep !== n);
+    $all('.onb-dot').forEach((d, i) => d.classList.toggle('is-active', i + 1 === n));
+    $('#onbPrev').disabled = (n === 1);
+    $('#onbNext').textContent = (n === 4) ? 'Готово!' : 'Дальше →';
+  }
+
+  function onbNext() {
+    if (onbStep < 4) setOnbStep(onbStep + 1);
+    else finishOnboarding();
+  }
+  function onbPrev() { if (onbStep > 1) setOnbStep(onbStep - 1); }
+  function finishOnboarding() {
+    localStorage.setItem(LS_ONB, '1');
+    closeModal('#onboarding');
+    toast('Добро пожаловать! Переверните первую карточку 👆', 'success');
+  }
+
+  /* ============================================================
+   * ВЫБОР ТЕМ ДЛЯ ПОВТОРЕНИЯ
+   * ============================================================ */
+  function openStudyThemesModal() {
+    const grid = $('#themesGrid');
+    grid.innerHTML = folders.map(f => {
+      const count = words.filter(w => w.folderId === f.id).length;
+      return `
+        <div class="theme-chip" data-folder="${f.id}">
+          <span class="tc-icon">${f.icon}</span>
+          <span class="tc-name">${escapeHTML(f.name)}</span>
+          <span class="tc-count">${count}</span>
+          <span class="tc-check">✓</span>
+        </div>
+      `;
+    }).join('');
+    $all('.theme-chip', grid).forEach(c => {
+      c.onclick = () => c.classList.toggle('is-selected');
+    });
+    openModal('#studyThemesModal');
+  }
+
+  function themesSelectAll() {
+    $all('.theme-chip').forEach(c => c.classList.add('is-selected'));
+  }
+  function themesClear() {
+    $all('.theme-chip').forEach(c => c.classList.remove('is-selected'));
+  }
+
+  function themesStart() {
+    const selected = $all('.theme-chip.is-selected').map(c => c.dataset.folder);
+    if (!selected.length) { toast('Выберите хотя бы одну тему', 'error'); return; }
+    const list = words.filter(w => selected.includes(w.folderId));
+    if (!list.length) { toast('В выбранных папках нет слов', 'error'); return; }
+    closeModal('#studyThemesModal');
+    startStudyWithList(list);
+  }
+
+  /* ============================================================
+   * РЕЖИМ ПОВТОРЕНИЯ
+   * ============================================================ */
+  function openStudy(folderId) {
+    let list;
+    if (folderId === 'all' || !folderId) list = words.slice();
+    else list = words.filter(w => w.folderId === folderId);
+    if (!list.length) { toast('Нет слов для повторения', 'error'); return; }
+    startStudyWithList(list);
+  }
+
+  function startStudyWithList(list) {
+    list.sort(() => Math.random() - 0.5);
+    studySession = {
+      list, idx: 0, dir: 'ru-en',
+      know: 0, dontKnow: 0, folderId: activeFolderId === 'all' ? null : activeFolderId
+    };
+    $('#studyOverlay').hidden = false;
+    $('#studyResults').hidden = true;
+    $('#studyActions').style.display = 'flex';
+    saveProgress();
+    renderFlipCard();
+  }
+
+  function renderFlipCard() {
+    if (!studySession) return;
+    const w = studySession.list[studySession.idx];
+    if (!w) return;
+    const total = studySession.list.length;
+    const cur = studySession.idx + 1;
+    $('#studyProgress').textContent = `${cur} / ${total}`;
+    $('#studyProgressFill').style.width = (cur / total * 100) + '%';
+
+    // По умолчанию RU→EN: на лицевой — русское слово (как на главной),
+    // на обороте — английское слово (крупно, акцентным цветом) + пример
+    const ruFirst = studySession.dir === 'ru-en';
+    const frontWord = ruFirst ? w.translation : w.word;
+    const frontLabel = ruFirst ? 'нажми — по-английски' : 'нажми — по-русски';
+    const backWord = ruFirst ? w.word : w.translation;
+    const backLabel = ruFirst ? 'english' : 'перевод';
+
+    const img = w.imageUrl
+      ? `<img class="flip-img" src="${escapeHTML(w.imageUrl)}" alt="">`
+      : '<div class="flip-hint">нет картинки</div>';
+
+    $('#studyStage').innerHTML = `
+      <div class="flip-card" id="flipCard">
+        <div class="flip-inner">
+          <div class="flip-face flip-front-side">
+            ${img}
+            <div class="flip-word">${escapeHTML(frontWord)}</div>
+            <div class="flip-hint">${frontLabel} (Пробел)</div>
+          </div>
+          <div class="flip-face flip-back-side">
+            ${img}
+            <div class="flip-back-label">${backLabel}</div>
+            <div class="flip-back-word">${escapeHTML(backWord)}</div>
+            <div class="flip-example">«${escapeHTML(w.example || '')}»</div>
+          </div>
+        </div>
+      </div>
+    `;
+    $('#flipCard').onclick = () => $('#flipCard').classList.toggle('is-flipped');
+    $('#btnNext').disabled = true;
+    // Авто-озвучка английского слова при показе карточки
+    setTimeout(() => speak(w.word), 400);
+  }
+
+  function nextStudyWord() {
+    if (!studySession) return;
+    studySession.idx++;
+    if (studySession.idx >= studySession.list.length) finishStudy();
+    else { renderFlipCard(); saveProgress(); }
+  }
+
+  function finishStudy() {
+    $('#studyActions').style.display = 'none';
+    $('#studyStage').innerHTML = '';
+    const r = studySession;
+    const total = r.list.length;
+    const knowRate = total ? Math.round(r.know / total * 100) : 0;
+
+    // Обновление статистики
+    stats.learned += r.know;
+    if (r.know > stats.best) stats.best = r.know;
+    stats.lastStudy = Date.now();
+    if (!stats.folders) stats.folders = {};
+    if (r.folderId) {
+      const cur = stats.folders[r.folderId] || 0;
+      stats.folders[r.folderId] = cur + r.know;
+    }
+    saveStats();
+
+    $('#resultsGrid').innerHTML = `
+      <div class="result-stat"><span class="rs-num">${total}</span><span class="rs-lbl">Всего слов</span></div>
+      <div class="result-stat"><span class="rs-num" style="color:var(--c-success)">${r.know}</span><span class="rs-lbl">Знаю</span></div>
+      <div class="result-stat"><span class="rs-num" style="color:var(--c-danger)">${r.dontKnow}</span><span class="rs-lbl">Не знаю</span></div>
+    `;
+    $('#studyResults').hidden = false;
+    clearProgress();
+    updateStats();  // обновляем боковую панель статистики сразу
+  }
+
+  function closeStudy() {
+    // Если прошли хотя бы 1 слово — сохраняем частичную статистику
+    if (studySession && (studySession.know > 0 || studySession.dontKnow > 0) && studySession.idx > 0) {
+      const r = studySession;
+      stats.learned += r.know;
+      if (r.know > stats.best) stats.best = r.know;
+      stats.lastStudy = Date.now();
+      saveStats();
+      updateStats();
+    }
+    $('#studyOverlay').hidden = true;
+    studySession = null;
+    clearProgress();
+  }
+
+  function toggleDirection() {
+    if (!studySession) return;
+    studySession.dir = studySession.dir === 'ru-en' ? 'en-ru' : 'ru-en';
+    $('#btnToggleDir').textContent = studySession.dir === 'ru-en' ? 'RU → EN' : 'EN → RU';
+    renderFlipCard();
+  }
+
+  /* ============================================================
+   * Сохранение/восстановление прогресса повторения
+   * ============================================================ */
+  function saveProgress() {
+    if (!studySession) return;
+    try {
+      localStorage.setItem(LS_PROGRESS, JSON.stringify({
+        list: studySession.list,
+        idx: studySession.idx,
+        dir: studySession.dir,
+        know: studySession.know,
+        dontKnow: studySession.dontKnow,
+        folderId: studySession.folderId
+      }));
+    } catch (e) {}
+  }
+  function clearProgress() {
+    localStorage.removeItem(LS_PROGRESS);
+  }
+  function maybeResumeStudy() {
+    try {
+      const p = localStorage.getItem(LS_PROGRESS);
+      if (!p) return;
+      const data = JSON.parse(p);
+      if (!data.list || !data.list.length) return;
+      // Только если сессия не завершена
+      if (data.idx >= data.list.length) return;
+      if (!confirm(`У вас незавершённое повторение (${data.idx + 1}/${data.list.length}). Продолжить?`)) {
+        clearProgress();
+        return;
+      }
+      studySession = {
+        list: data.list, idx: data.idx, dir: data.dir || 'en-ru',
+        know: data.know || 0, dontKnow: data.dontKnow || 0,
+        folderId: data.folderId
+      };
+      $('#studyOverlay').hidden = false;
+      $('#studyResults').hidden = true;
+      $('#studyActions').style.display = 'flex';
+      renderFlipCard();
+    } catch (e) { console.warn('resume failed', e); }
+  }
+
+  /* ============================================================
+   * МОДАЛКИ
+   * ============================================================ */
+  function openModal(sel) {
+    const m = $(sel);
+    if (!m) return;
+    m.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal(sel) {
+    const m = $(sel);
+    if (!m) return;
+    m.hidden = true;
+    document.body.style.overflow = '';
+  }
+  function closeAllModals() {
+    $all('.modal-backdrop').forEach(m => m.hidden = true);
+    document.body.style.overflow = '';
+  }
+
+  /* ============================================================
+   * ГОРЯЧИЕ КЛАВИШИ
+   *  /  — фокус на поиск
+   *  Esc — закрыть всё
+   *  Space — перевернуть карточку (в режиме повторения)
+   *  S — озвучить (в режиме повторения)
+   *  → — следующее слово
+   * ============================================================ */
+  function initHotkeys() {
+    document.addEventListener('keydown', e => {
+      // Пропуск, если фокус в поле ввода
+      const tag = (e.target.tagName || '').toLowerCase();
+      const inField = (tag === 'input' || tag === 'textarea' || tag === 'select');
+
+      // / — фокус на поиск
+      if (e.key === '/' && !inField) {
+        e.preventDefault();
+        $('#search').focus();
+        return;
+      }
+      // Esc — закрыть
+      if (e.key === 'Escape') {
+        closeAllModals();
+        if ($('#studyOverlay').hidden === false) closeStudy();
+        return;
+      }
+      // Горячие клавиши режима повторения
+      if ($('#studyOverlay').hidden === false && studySession) {
+        if (e.key === ' ' && !inField) {
+          e.preventDefault();
+          $('#flipCard') && $('#flipCard').classList.toggle('is-flipped');
+          return;
+        }
+        if ((e.key === 's' || e.key === 'S' || e.key === 'ы' || e.key === 'Ы') && !inField) {
+          const w = studySession.list[studySession.idx];
+          if (w) speak(w.word);
+          return;
+        }
+        if (e.key === 'ArrowRight' && !inField) {
+          if (!$('#btnNext').disabled) nextStudyWord();
+          return;
+        }
+      }
+    });
+  }
+
+  /* ============================================================
+   * ИНИЦИАЛИЗАЦИЯ СОБЫТИЙ
+   * ============================================================ */
+  function initEvents() {
+    // Бургер и боковое меню
+    $('#burger').onclick = () => toggleSidebar();
+    $('#sidebarOverlay').onclick = () => toggleSidebar(false);
+    $all('[data-scroll="top"]').forEach(b => b.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+    // Боковое меню — действия (теперь через хеш-роутинг)
+    $('#sideAddWord').onclick = () => { openWordModal(null); if (window.innerWidth <= 860) toggleSidebar(false); };
+    $('#sideStudy').onclick = () => { openStudy('all'); if (window.innerWidth <= 860) toggleSidebar(false); };
+    $('#sideStudyThemes').onclick = () => { openStudyThemesModal(); if (window.innerWidth <= 860) toggleSidebar(false); };
+    $('#sideImport').onclick = () => { openModal('#importModal'); if (window.innerWidth <= 860) toggleSidebar(false); };
+    $('#sideDark').onclick = toggleDark;
+    $('#sideA11y').onclick = toggleA11y;
+    $('#sideHelp').onclick = () => { openModal('#onboarding'); setOnbStep(1); };
+
+    // Кнопки верхней панели — через хеш
+    $('#btnStudyAll').onclick = () => openStudy('all');
+    $('#btnAddWord').onclick  = () => openWordModal(null);
+    $('#btnImport').onclick   = () => openModal('#importModal');
+    $('#btnAbout').onclick    = () => openModal('#aboutModal');
+    $('#btnSettings').onclick  = () => openModal('#settingsModal');
+
+    // Настройки оформления
+    $all('.theme-option').forEach(o => {
+      o.onclick = () => {
+        applyTheme(o.dataset.theme);
+        toast('Тема: ' + o.dataset.name, 'success');
+      };
+    });
+    $all('.accent-option').forEach(o => {
+      o.onclick = () => {
+        applyAccent(o.dataset.accent);
+        toast('Акцент обновлён', 'success');
+      };
+    });
+    $all('.palette-option').forEach(o => {
+      o.onclick = () => {
+        applyPalette(o.dataset.palette);
+        toast('Палитра: ' + o.dataset.name, 'success');
+      };
+    });
+    $all('.font-option').forEach(o => {
+      o.onclick = () => {
+        applyFont(o.dataset.font);
+        toast('Шрифт: ' + o.dataset.font, 'success');
+      };
+    });
+    $all('.size-option').forEach(o => {
+      o.onclick = () => {
+        applyFontSize(o.dataset.size);
+        toast('Размер шрифта обновлён', 'success');
+      };
+    });
+    $('#resetSettings').onclick = resetSettings;
+    $('#btnDarkMode').onclick = toggleDark;
+    $('#btnA11y').onclick = toggleA11y;
+    $('#sideResetStats').onclick = () => {
+      if (confirm('Сбросить всю статистику? Слова останутся, но счётчики обнулятся.')) {
+        stats = { learned: 0, best: 0, lastStudy: null };
+        saveStats();
+        updateStats();
+        toast('Статистика сброшена', 'success');
+      }
+    };
+
+    // Живой поиск
+    $('#search').addEventListener('input', e => {
+      searchQuery = e.target.value.trim();
+      renderGroups();
+    });
+
+    // Форма слова
+    $('#wordForm').addEventListener('submit', saveWord);
+    $('#btnUnsplashSearch').onclick = searchUnsplash;
+    $('#btnImgPreview').onclick = () => showImgPreview($('#imgUrl').value.trim());
+    $('#imgUrl').addEventListener('input', e => {
+      $('#fImgUrl').value = e.target.value.trim();
+    });
+
+    $all('.img-tab').forEach(tab => {
+      tab.onclick = () => {
+        $all('.img-tab').forEach(t => t.classList.remove('is-active'));
+        tab.classList.add('is-active');
+        $all('.img-pane').forEach(p => p.hidden = p.dataset.imgPane !== tab.dataset.imgTab);
+      };
+    });
+
+    // Импорт
+    $('#importFile').onchange = handleImportFile;
+    $('#btnImportUrl').onclick = handleImportUrl;
+    $('#btnAutoImages').onclick = autoFetchImages;
+
+    // Выбор тем
+    $('#themesSelectAll').onclick = themesSelectAll;
+    $('#themesClear').onclick = themesClear;
+    $('#themesStart').onclick = themesStart;
+
+    // Онбординг
+    $('#onbNext').onclick = onbNext;
+    $('#onbPrev').onclick = onbPrev;
+    $('#onbSkip').onclick = finishOnboarding;
+
+    // Режим повторения
+    $('#btnKnow').onclick = () => {
+      if (!studySession) return;
+      studySession.know++;
+      $('#btnNext').disabled = false;
+      toast('✔ Знаю', 'success');
+    };
+    $('#btnDontKnow').onclick = () => {
+      if (!studySession) return;
+      studySession.dontKnow++;
+      $('#btnNext').disabled = false;
+      toast('✖ Не знаю', 'error');
+    };
+    $('#btnNext').onclick = nextStudyWord;
+    $('#btnToggleDir').onclick = toggleDirection;
+    $('#btnStudySpeak').onclick = () => {
+      if (studySession) speak(studySession.list[studySession.idx].word);
+    };
+    $('#btnCloseStudy').onclick = closeStudy;
+    $('#btnRestartStudy').onclick = () => {
+      const lastList = studySession.list;
+      studySession = { list: lastList, idx: 0, dir: 'ru-en', know: 0, dontKnow: 0 };
+      $('#studyResults').hidden = true;
+      $('#studyActions').style.display = 'flex';
+      renderFlipCard();
+    };
+    $('#btnExitStudy').onclick = closeStudy;
+
+    // Закрытие модалок
+    $all('[data-close]').forEach(b => b.onclick = () => closeAllModals());
+    $all('.modal-backdrop').forEach(bd => {
+      bd.onclick = e => { if (e.target === bd) closeAllModals(); };
+    });
+
+    // Год в футере
+    $('#year').textContent = new Date().getFullYear();
+
+    // Горячие клавиши
+    initHotkeys();
+
+    // Предзагрузка голосов для TTS
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+
+    // ============== PWA: регистрация Service Worker ==============
+    registerServiceWorker();
+
+    // ============== PWA: обработка установки ==============
+    initInstallPrompt();
+
+    // ============== Глубинные ссылки через ?action=... ==============
+    handleUrlAction();
+  }
+
+  /* ============================================================
+   * PWA: регистрация Service Worker
+   * Только на https или localhost (требование браузеров).
+   * При открытии через file:// SW не регистрируется.
+   * ============================================================ */
+  function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    // file:// протокол не поддерживает SW
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      console.info('[PWA] Service Worker требует https. Пропускаем регистрацию на', location.protocol);
+      return;
+    }
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => {
+          console.info('[PWA] Service Worker зарегистрирован:', reg.scope);
+          // Проверяем наличие обновлений SW
+          reg.addEventListener('updatefound', () => {
+            const nw = reg.installing;
+            if (!nw) return;
+            nw.addEventListener('statechange', () => {
+              if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                toast('🔄 Доступна новая версия. Перезагрузите страницу', 'success');
+              }
+            });
+          });
+        })
+        .catch(err => console.warn('[PWA] SW registration failed:', err));
+    });
+  }
+
+  /* ============================================================
+   * PWA: обработка события beforeinstallprompt
+   * Показывает кнопку установки 📲 в шапке и в боковом меню.
+   * ============================================================ */
+  let deferredInstallPrompt = null;
+
+  function initInstallPrompt() {
+    window.addEventListener('beforeinstallprompt', e => {
+      // Предотвращаем стандартный мини-баннер
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      // Показываем кнопки установки
+      $('#btnInstall').classList.remove('hidden');
+      $('#sideInstall').hidden = false;
+      console.info('[PWA] Готово к установке');
+    });
+
+    // Кнопка в шапке
+    $('#btnInstall').onclick = triggerInstall;
+    // Пункт в боковом меню
+    $('#sideInstall').onclick = triggerInstall;
+
+    // Скрыть кнопку после установки
+    window.addEventListener('appinstalled', () => {
+      $('#btnInstall').classList.add('hidden');
+      $('#sideInstall').hidden = true;
+      deferredInstallPrompt = null;
+      toast('✅ Приложение установлено', 'success');
+      // Отправка аналитики (если будет)
+      console.info('[PWA] Установлено');
+    });
+
+    // Если уже запущено как standalone (PWA) — скрываем кнопку
+    if (window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true) {
+      $('#btnInstall').classList.add('hidden');
+      $('#sideInstall').hidden = true;
+    }
+  }
+
+  async function triggerInstall() {
+    if (!deferredInstallPrompt) {
+      toast('Откройте меню браузера → «Установить приложение»', 'success');
+      return;
+    }
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    if (choice.outcome === 'accepted') {
+      console.info('[PWA] Пользователь установил приложение');
+    } else {
+      console.info('[PWA] Пользователь отклонил установку');
+    }
+    deferredInstallPrompt = null;
+  }
+
+  /* ============================================================
+   * Глубинные ссылки: ?action=study | add | import
+   * Позволяет запускать конкретные функции из ярлыков PWA.
+   * ============================================================ */
+  function handleUrlAction() {
+    const params = new URLSearchParams(location.search);
+    const action = params.get('action');
+    if (!action) return;
+    // Небольшая задержка, чтобы интерфейс успел отрисоваться
+    setTimeout(() => {
+      if (action === 'study') openStudy('all');
+      else if (action === 'add') openWordModal(null);
+      else if (action === 'import') openModal('#importModal');
+    }, 500);
+  }
+
+  /* ============================================================
+   * ИНИЦИАЛИЗАЦИЯ
+   * ============================================================ */
+  function init() {
+    loadState();
+    initEvents();
+
+    // Восстановление темы
+    const savedTheme = localStorage.getItem(LS_THEME) || '';
+    if (savedTheme) applyTheme(savedTheme);
+
+    // Восстановление настроек оформления (палитра — первой, потом остальные)
+    const savedPalette = localStorage.getItem(LS_PALETTE);
+    if (savedPalette) applyPalette(savedPalette);
+    const savedAccent = localStorage.getItem(LS_ACCENT);
+    if (savedAccent && !savedPalette) applyAccent(savedAccent);
+    const savedFont = localStorage.getItem(LS_FONT);
+    if (savedFont) applyFont(savedFont);
+    const savedSize = localStorage.getItem(LS_FONTSIZE);
+    if (savedSize) applyFontSize(savedSize);
+
+    // Восстановление состояния бокового меню
+    const sidebarState = localStorage.getItem(LS_SIDEBAR);
+    if (window.innerWidth > 860) {
+      toggleSidebar(sidebarState !== 'closed');
+    } else {
+      toggleSidebar(false);
+    }
+
+    // ====== Хеш-роутинг: при первом запуске и при смене # ======
+    window.addEventListener('hashchange', handleHashChange);
+    handleHashChange();  // первичная отрисовка на основе URL
+
+    maybeShowOnboarding();
+    if (localStorage.getItem(LS_PROGRESS)) {
+      setTimeout(maybeResumeStudy, 1000);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  window.ETT = {
+    openStudy, openWordModal, importWords, renderAll,
+    speak, toggleDark, toggleA11y, toggleSidebar,
+    triggerInstall, sanitizeURL, sanitizeText, sanitizeEmoji
+  };
+})();
+
+</script>
+</body>
+</html>
